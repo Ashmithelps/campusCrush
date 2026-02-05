@@ -41,3 +41,6 @@ yarn-error.log*
 # Logs
 logs/
 *.log
+
+# Secrets
+campuscrush/src/main/resources/application.properties

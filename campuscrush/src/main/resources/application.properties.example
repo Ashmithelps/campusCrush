@@ -1,0 +1,23 @@
+spring.application.name=campuscrush
+server.error.include-message=always
+
+# Database (Production: Set DB_URL, DB_USER, DB_PASSWORD)
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/campus_crush}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:change_me}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=${DDL_AUTO:update}
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# EMAIL CONFIG (Production: Set MAIL_HOST, MAIL_USER, MAIL_PASSWORD)
+spring.mail.host=${MAIL_HOST:smtp.gmail.com}
+spring.mail.port=${MAIL_PORT:587}
+spring.mail.username=${MAIL_USERNAME:your_email@cuchd.in}
+spring.mail.password=${MAIL_PASSWORD:your_app_password}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# SECURITY (Production: Set JWT_SECRET)
+jwt.secret=${JWT_SECRET:change-this-to-long-random-secret-for-development-only-needs-to-be-256-bits}
