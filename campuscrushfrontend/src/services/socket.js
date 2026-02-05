@@ -12,7 +12,7 @@ class SocketService {
     if (this.client && this.client.active) return; // Already connected
 
     this.client = new Client({
-      brokerURL: `ws://${window.location.hostname}:8080/ws`,
+      brokerURL: import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:8080/ws`,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
