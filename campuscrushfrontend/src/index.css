@@ -1,0 +1,93 @@
+:root {
+  /* CampusCrush Palette - Rose/Romance Theme */
+  --primary: 340 82% 52%;       /* #E61E63 - Rose */
+  --primary-light: 340 80% 96%; /* #FDE8EF */
+  --secondary: 265 89% 66%;     /* #A76BE6 - Soft Violet */
+  --background: 330 100% 98%;   /* #FFF0F5 - Lavender Blush */
+  --surface: 0 0% 100%;         /* White */
+  --text-main: 215 25% 27%;     /* #334155 - Slate */
+  --text-muted: 215 16% 47%;    /* #64748B - Muted Slate */
+  --danger: 0 84% 60%;          /* Red */
+  --success: 142 71% 45%;       /* Green */
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(340 82 52 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(340 82 52 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: hsl(var(--background));
+  color: hsl(var(--text-main));
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utilities */
+.container {
+  width: 100%;
+  max-width: 600px; /* Mobile-first focus */
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.card {
+  background: hsl(var(--surface));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  /* Glassmorphism approach */
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, hsl(340 82% 52%), hsl(265 89% 66%));
+  color: white;
+  box-shadow: 0 4px 10px -2px rgba(230, 30, 99, 0.3);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 2px solid hsl(var(--secondary) / 0.2);
+  background: white;
+  color: hsl(var(--text-main));
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: hsl(var(--secondary));
+}
