@@ -1,40 +1,54 @@
 package com.example.campuscrush.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    @Value("${mailersend.api-key}")
+    private String apiKey;
 
-    @Value("${spring.mail.username:console}")
+    @Value("${mailersend.domain}")
+    private String domain;
+
+    @Value("${mailersend.from-email}")
     private String fromEmail;
 
-    public void sendOtp(String to, String otp) {
-        String subject = "CampusCrush OTP Code";
-        String body = "Your authentication code is: " + otp + "\n\nThis code expires in 5 minutes.";
+    @Value("${mailersend.from-name}")
+    private String fromName;
 
-        if (mailSender != null && !fromEmail.equals("console")) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromEmail);
-                message.setTo(to);
-                message.setSubject(subject);
-                message.setText(body);
-                mailSender.send(message);
-                System.out.println("✅ Email sent to " + to);
-            } catch (Exception e) {
-                System.err.println("❌ Failed to send email: " + e.getMessage());
-                // Fallback to console
-                logToConsole(to, otp);
-            }
-        } else {
-            // Mock mode
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    public void sendOtp(String to, String otp) {
+        String url = "https://api.mailersend.com/v1/email";
+
+        // JSON Body for MailerSend
+        // They use a specific format:
+        // { "from": { "email": "...", "name": "..." }, "to": [ { "email": "..." } ], "subject": "...", "text": "..." }
+        
+        // Constructing JSON manually to avoid creating extra DTO classes for one call
+        String jsonBody = String.format(
+            "{\"from\":{\"email\":\"%s\",\"name\":\"%s\"},\"to\":[{\"email\":\"%s\"}],\"subject\":\"CampusCrush OTP Code\",\"text\":\"Your authentication code is: %s\\n\\nThis code expires in 5 minutes.\",\"html\":\"<p>Your authentication code is: <strong>%s</strong></p><p>This code expires in 5 minutes.</p>\"}",
+            fromEmail, fromName, to, otp, otp
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(apiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> request = new HttpEntity<>(jsonBody, headers);
+
+        try {
+            restTemplate.postForEntity(url, request, String.class);
+            System.out.println("✅ Email sent to " + to + " via MailerSend");
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send email via MailerSend: " + e.getMessage());
+            // Fallback to console for debugging
             logToConsole(to, otp);
         }
     }
