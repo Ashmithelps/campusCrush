@@ -1,13 +1,11 @@
 {
-    "cleanUrls": true,
-    "trailingSlash": false,
     "rewrites": [
         {
-            "source": "/api/:match*",
-            "destination": "https://campuscrush-production-334a.up.railway.app/api/:match*"
+            "source": "/api/(.*)",
+            "destination": "https://campuscrush-production-334a.up.railway.app/api/$1"
         },
         {
-            "source": "/:path*",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
