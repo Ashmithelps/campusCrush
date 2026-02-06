@@ -33,8 +33,17 @@ const Login = () => {
             }
         } catch (err) {
             console.error("Login Error:", err);
-            const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Login failed.';
-            setError(errorMsg);
+            let errorMsg = 'Login failed.';
+            if (err.response && err.response.data) {
+                if (typeof err.response.data === 'string') {
+                    errorMsg = err.response.data;
+                } else if (err.response.data.message) {
+                    errorMsg = err.response.data.message;
+                } else if (err.response.data.error) {
+                    errorMsg = err.response.data.error;
+                }
+            }
+            setError(String(errorMsg)); // Force string to prevent crash
         } finally {
             setLoading(false);
         }
