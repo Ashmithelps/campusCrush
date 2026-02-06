@@ -33,10 +33,13 @@ public class AuthService {
     }
 
     public String verifyOtpAndLogin(String email, String otp) {
-        User user = userRepository.findByCollegeEmail(email)
+        String normalizedEmail = email.toLowerCase().trim();
+        String normalizedOtp = otp.trim();
+
+        User user = userRepository.findByCollegeEmail(normalizedEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(otp)) {
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(normalizedOtp)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
         }
 
