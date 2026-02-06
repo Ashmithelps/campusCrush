@@ -1,0 +1,14 @@
+{
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [
+        {
+            "source": "/api/:match*",
+            "destination": "https://campuscrush-production-334a.up.railway.app/api/:match*"
+        },
+        {
+            "source": "/:path*",
+            "destination": "/index.html"
+        }
+    ]
+}
