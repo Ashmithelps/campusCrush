@@ -144,7 +144,9 @@ public void markAsRead(Long confessionId, User user) {
                             .build();
                 })
                 .toList();
-        @Transactional
+    }
+
+    @Transactional
     public void revealIdentity(Long confessionId, User sender) {
         Confession confession = confessionRepository.findById(confessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
