@@ -1,5 +1,6 @@
 package com.example.campuscrush.entity.user;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -50,9 +51,14 @@ public class User {
     private String branch;
     private Integer graduationYear;
 
-    // Moderation
-    private boolean shadowBanned = false;
+    @Builder.Default
+    private boolean isVerified = false;
 
+    @Builder.Default
+    private boolean isShadowBanned = false; // Shadowban flag
+
+    @Builder.Default
+    private Instant createdAt = Instant.now();
     // Authentication (OTP)
     private String otpCode;
     private java.time.Instant otpExpiry;

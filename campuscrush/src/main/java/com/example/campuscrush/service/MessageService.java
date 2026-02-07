@@ -103,6 +103,7 @@ public class MessageService {
             -1L, // Special ID for icebreaker
             confession.getSender().getId().equals(user.getId()) ? "SELF" : "OTHER",
             confession.getIcebreakerMessage(),
+            com.example.campuscrush.entity.message.MessageType.TEXT,
             confession.getCreatedAt()
         ));
 

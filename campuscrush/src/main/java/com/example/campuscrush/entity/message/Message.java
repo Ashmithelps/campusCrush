@@ -49,6 +49,7 @@ public class Message {
     @Builder.Default
     private MessageType type = MessageType.TEXT;
 
+    @Builder.Default
     private Instant sentAt = Instant.now();
 
      @PrePersist
