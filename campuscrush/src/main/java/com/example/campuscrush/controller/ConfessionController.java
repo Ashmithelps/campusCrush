@@ -60,6 +60,12 @@ public void block(@PathVariable Long confessionId) {
     confessionService.blockConfession(confessionId, receiver);
 }
 
+@PostMapping("/{confessionId}/reveal")
+public void reveal(@PathVariable Long confessionId) {
+    User sender = SecurityUtils.currentUser();
+    confessionService.revealIdentity(confessionId, sender);
+}
+
 @PostMapping("/{confessionId}/read")
 public void markRead(@PathVariable Long confessionId) {
     User user = SecurityUtils.currentUser();

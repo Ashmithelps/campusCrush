@@ -26,4 +26,5 @@ public class ConfessionResponse {
     private boolean isSender;
     
     private Boolean hasUnread;
+    private Boolean isRevealed;
 }

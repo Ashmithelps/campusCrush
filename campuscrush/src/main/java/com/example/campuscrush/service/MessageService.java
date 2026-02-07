@@ -114,6 +114,7 @@ public class MessageService {
                         msg.getId(),
                         msg.getSender().getId().equals(user.getId()) ? "SELF" : "OTHER",
                         msg.getContent(),
+                        msg.getType(),
                         msg.getSentAt()
                 ))
                 .toList();

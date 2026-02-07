@@ -58,5 +58,8 @@ public class Confession {
     private Boolean receiverHasUnread = false;
 
     @Builder.Default
+    private Boolean isRevealed = false;
+
+    @Builder.Default
     private Instant createdAt = Instant.now();
 }

@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class ConfessionService {
 
     private final ConfessionRepository confessionRepository;
+    private final com.example.campuscrush.repository.MessageRepository messageRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     public void createConfession(
@@ -139,8 +140,59 @@ public void markAsRead(Long confessionId, User user) {
                             .createdAt(c.getCreatedAt())
                             .isSender(isSender)
                             .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
+                            .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
                             .build();
                 })
                 .toList();
+        @Transactional
+    public void revealIdentity(Long confessionId, User sender) {
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // 1. Validate only Sender can reveal
+        if (!confession.getSender().getId().equals(sender.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the sender can reveal identity");
+        }
+
+        // 2. Check if already revealed
+        if (Boolean.TRUE.equals(confession.getIsRevealed())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Identity already revealed");
+        }
+
+        // 3. Update State
+        confession.setIsRevealed(true);
+        confessionRepository.save(confession);
+
+        // 4. Create System Message
+        String rollNumber = sender.getRollNumber() != null ? sender.getRollNumber() : sender.getPublicId().toString();
+        String content = "Identity Revealed! 🎭 The sender is " + rollNumber;
+
+        com.example.campuscrush.entity.message.Message systemArgs = com.example.campuscrush.entity.message.Message.builder()
+                .confession(confession)
+                .sender(sender)
+                .content(content)
+                .type(com.example.campuscrush.entity.message.MessageType.REVEAL)
+                .build();
+        
+        messageRepository.save(systemArgs);
+
+        // 5. Notify Socket
+         try {
+            // Notify Receiver
+            messagingTemplate.convertAndSendToUser(
+                confession.getReceiver().getPublicId().toString(),
+                "/queue/confessions",
+                "REVEALED"
+            );
+            
+            // Notify Chat Topic
+            messagingTemplate.convertAndSend(
+                "/topic/confession/" + confession.getId(),
+                "REVEALED"
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to send WebSocket notification: " + e.getMessage());
+        }
     }
+}
 }
