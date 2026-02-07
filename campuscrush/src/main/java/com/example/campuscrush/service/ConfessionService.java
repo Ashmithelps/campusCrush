@@ -197,4 +197,3 @@ public void markAsRead(Long confessionId, User user) {
         }
     }
 }
-}
