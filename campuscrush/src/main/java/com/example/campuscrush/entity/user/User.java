@@ -52,10 +52,7 @@ public class User {
     private Integer graduationYear;
 
     @Builder.Default
-    private boolean isVerified = false;
-
-    @Builder.Default
-    private boolean isShadowBanned = false; // Shadowban flag
+    private boolean shadowBanned = false; // Changed back to match DB column likely
 
     @Builder.Default
     private Instant createdAt = Instant.now();
@@ -63,8 +60,9 @@ public class User {
     private String otpCode;
     private java.time.Instant otpExpiry;
 
+    @Builder.Default
     @Column(columnDefinition = "boolean default false")
-    private Boolean verified = false; // Changed to Wrapper to satisfy Hibernate schema update
+    private Boolean verified = false;
 
     @PrePersist
     public void prePersist() {
