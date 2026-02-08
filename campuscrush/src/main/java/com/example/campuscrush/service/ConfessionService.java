@@ -89,7 +89,7 @@ public void replyToConfession(Long confessionId, User receiver) {
     confession.setState(ConfessionState.UNLOCKED);
 }
 @Transactional
-    @Transactional
+
     public void blockConfession(Long confessionId, User user) {
 
         Confession confession = confessionRepository.findById(confessionId)
