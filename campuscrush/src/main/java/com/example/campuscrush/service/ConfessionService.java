@@ -89,19 +89,26 @@ public void replyToConfession(Long confessionId, User receiver) {
     confession.setState(ConfessionState.UNLOCKED);
 }
 @Transactional
-public void blockConfession(Long confessionId, User receiver) {
+    @Transactional
+    public void blockConfession(Long confessionId, User user) {
 
-    Confession confession = confessionRepository.findById(confessionId)
-            .orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND)
-            );
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND)
+                );
 
-    if (!confession.getReceiver().getId().equals(receiver.getId())) {
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        boolean isParticipant =
+                user.getId().equals(confession.getSender().getId()) ||
+                user.getId().equals(confession.getReceiver().getId());
+
+        if (!isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        confession.setState(ConfessionState.BLOCKED);
+        confession.setBlockedBy(user);
+        confessionRepository.save(confession);
     }
-
-    confession.setState(ConfessionState.BLOCKED);
-}
 
 @Transactional
 public void markAsRead(Long confessionId, User user) {

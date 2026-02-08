@@ -56,8 +56,8 @@ public void reply(@PathVariable Long confessionId) {
 
 @PostMapping("/{confessionId}/block")
 public void block(@PathVariable Long confessionId) {
-    User receiver = SecurityUtils.currentUser();
-    confessionService.blockConfession(confessionId, receiver);
+    User user = SecurityUtils.currentUser();
+    confessionService.blockConfession(confessionId, user);
 }
 
 @PostMapping("/{confessionId}/reveal")
