@@ -15,7 +15,7 @@ public class JwtUtil {
     @org.springframework.beans.factory.annotation.Value("${jwt.secret}")
     private String SECRET_KEY;
 
-    private final long EXPIRATION_MS = 1000 * 60 * 60 * 2; // 2 hours
+    private final long EXPIRATION_MS = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     public String generateToken(UUID publicUserId) {
 

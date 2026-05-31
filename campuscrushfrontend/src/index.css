@@ -1,93 +1,945 @@
+/* ─────────────────────────────────────────────────────
+   Design System  ·  Tinder × Discord × Spotify
+───────────────────────────────────────────────────── */
+
 :root {
-  /* CampusCrush Palette - Rose/Romance Theme */
-  --primary: 340 82% 52%;       /* #E61E63 - Rose */
-  --primary-light: 340 80% 96%; /* #FDE8EF */
-  --secondary: 265 89% 66%;     /* #A76BE6 - Soft Violet */
-  --background: 330 100% 98%;   /* #FFF0F5 - Lavender Blush */
-  --surface: 0 0% 100%;         /* White */
-  --text-main: 215 25% 27%;     /* #334155 - Slate */
-  --text-muted: 215 16% 47%;    /* #64748B - Muted Slate */
-  --danger: 0 84% 60%;          /* Red */
-  --success: 142 71% 45%;       /* Green */
+  /* Blacks — Spotify depth */
+  --bg:        #121212;
+  --surface:   #1A1A1A;
+  --surface-2: #242424;
+  --surface-3: #2E2E2E;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(340 82 52 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(340 82 52 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Borders — glass-like, not heavy lines */
+  --border:   rgba(255, 255, 255, 0.07);
+  --border-2: rgba(255, 255, 255, 0.13);
 
-  --radius-lg: 0.75rem;
-  --radius-md: 0.5rem;
-  --radius-sm: 0.25rem;
+  /* Accent — Tinder energy */
+  --accent:       #FF2D55;
+  --accent-light: #FF6B8A;
+  --accent-glow:  rgba(255, 45, 85, 0.38);
+  --accent-dim:   rgba(255, 45, 85, 0.13);
+  --accent-hover: rgba(255, 45, 85, 0.22);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Success — Spotify green */
+  --success:     #1DB954;
+  --success-dim: rgba(29, 185, 84, 0.14);
+
+  /* Other states */
+  --warning:     #FF9500;
+  --warning-dim: rgba(255, 149, 0, 0.13);
+  --danger:      #FF3B30;
+  --danger-dim:  rgba(255, 59, 48, 0.13);
+  --gold:        #FFD60A;
+  --gold-dim:    rgba(255, 214, 10, 0.1);
+
+  /* Typography */
+  --text:   #FFFFFF;
+  --text-2: #A7A7A7;
+  --text-3: #4A4A4A;
+
+  /* Shape */
+  --radius:    16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+
+  --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+}
+
 body {
-  font-family: var(--font-sans);
-  background-color: hsl(var(--background));
-  color: hsl(var(--text-main));
-  line-height: 1.5;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow: hidden;
 }
 
-/* Utilities */
-.container {
-  width: 100%;
-  max-width: 600px; /* Mobile-first focus */
+/* ─────────────────────────────────────────────────────
+   AUTH  —  Tinder: bold, full-screen, bottom CTA
+───────────────────────────────────────────────────── */
+
+.auth-page {
+  height: 100%;
+  height: 100dvh;
+  max-width: 420px;
   margin: 0 auto;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0 28px;
 }
 
-.card {
-  background: hsl(var(--surface));
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 1.5rem;
-  /* Glassmorphism approach */
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+.auth-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 44px;
 }
 
-.btn {
-  display: inline-flex;
+.auth-logo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 44px;
+  display: inline-block;
+  text-transform: lowercase;
+}
+
+.auth-heading {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.auth-sub {
+  font-size: 0.93rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.auth-bottom {
+  padding: 16px 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Fields ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.field label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1rem;
+  padding: 15px 18px;
+  outline: none;
+  transition: border-color 0.18s, background 0.18s;
+  font-family: var(--font);
+  font-weight: 500;
+}
+
+.field-input::placeholder {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* ── OTP ── */
+.otp-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.otp-box {
+  width: 52px;
+  height: 64px;
+  background: var(--surface);
+  border: 2px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1.7rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.18s, transform 0.12s, background 0.18s;
+  caret-color: var(--accent);
+  font-family: var(--font);
+}
+
+.otp-box:focus {
+  border-color: var(--accent);
+  background: var(--surface-2);
+  transform: scale(1.06);
+}
+
+/* ── Buttons ── */
+.btn-full {
+  width: 100%;
+  padding: 17px 20px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
+  gap: 8px;
+  font-family: var(--font);
+  letter-spacing: 0.01em;
+}
+
+.btn-full:active { transform: scale(0.97); }
+
+.btn-full:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.btn-accent {
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: white;
+  box-shadow: 0 4px 24px var(--accent-glow);
+}
+
+.btn-accent:hover:not(:disabled) {
+  box-shadow: 0 6px 32px var(--accent-glow);
+}
+
+.btn-surface {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1.5px solid var(--border-2);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border: none;
+  padding: 8px 4px;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  font-size: 0.95rem;
+  font-family: var(--font);
+  transition: color 0.15s;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, hsl(340 82% 52%), hsl(265 89% 66%));
+.btn-ghost:hover { color: var(--text); }
+
+.btn-danger {
+  background: var(--danger-dim);
+  color: var(--danger);
+  border: 1.5px solid rgba(255, 59, 48, 0.2);
+}
+
+.btn-success {
+  background: linear-gradient(130deg, #1DB954, #22D465);
   color: white;
-  box-shadow: 0 4px 10px -2px rgba(230, 30, 99, 0.3);
+  box-shadow: 0 4px 18px rgba(29, 185, 84, 0.32);
 }
 
-.btn-primary:active {
-  transform: scale(0.98);
+/* ── Misc text ── */
+.error-text {
+  font-size: 0.82rem;
+  color: var(--danger);
+  font-weight: 500;
 }
 
-.input {
+.link-text {
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--text-3);
+}
+
+.link-text a,
+.link-text button {
+  color: var(--text-2);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: var(--font);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.link-text a:hover,
+.link-text button:hover { color: var(--text); }
+
+/* ─────────────────────────────────────────────────────
+   DASHBOARD  —  Spotify structure · Discord DM rows
+───────────────────────────────────────────────────── */
+
+.dashboard {
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Header */
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 20px 14px;
+  flex-shrink: 0;
+}
+
+.dash-header-left { display: flex; flex-direction: column; gap: 2px; }
+
+.dash-header-logo {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  text-transform: lowercase;
+}
+
+.dash-header-alias {
+  font-size: 0.73rem;
+  color: var(--text-3);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Section label — Spotify-style */
+.dash-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 6px 20px 8px;
+  flex-shrink: 0;
+}
+
+/* Confession list */
+.dash-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 96px;
+}
+
+/* Empty state */
+.dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 72px 28px 40px;
+  text-align: center;
+}
+
+.dash-empty-icon {
+  font-size: 3.2rem;
+  line-height: 1;
+  margin-bottom: 6px;
+  filter: grayscale(1);
+  opacity: 0.2;
+}
+
+.dash-empty-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-2);
+  letter-spacing: -0.02em;
+}
+
+.dash-empty-sub {
+  font-size: 0.83rem;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+
+/* Confession card — Discord DM row */
+.conf-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+
+@media (hover: hover) {
+  .conf-card:hover { background: var(--surface); }
+}
+.conf-card:active { background: var(--surface-2); }
+
+/* Avatar circle */
+.conf-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+  position: relative;
+}
+
+.conf-avatar-unread::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2.5px solid var(--bg);
+}
+
+/* Card body */
+.conf-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.conf-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.conf-card-alias {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conf-card-time {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.conf-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.conf-card-msg {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.conf-direction {
+  font-size: 0.65rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+/* State badges */
+.badge {
+  font-size: 0.63rem;
+  font-weight: 700;
+  padding: 2.5px 7px;
+  border-radius: 100px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.badge-created  { background: var(--warning-dim); color: var(--warning); }
+.badge-unlocked { background: var(--success-dim); color: var(--success); }
+.badge-blocked  { background: var(--danger-dim);  color: var(--danger);  }
+.badge-revealed { background: var(--gold-dim);    color: var(--gold);    }
+
+/* Unread dot (fallback / inline use) */
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* FAB — elongated pill, Spotify-style */
+.fab {
+  position: fixed;
+  bottom: 28px;
+  right: 50%;
+  transform: translateX(calc(50% + 212px));
+  height: 50px;
+  padding: 0 22px;
+  border-radius: 100px;
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font);
+  letter-spacing: 0.02em;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 28px var(--accent-glow);
+  transition: transform 0.15s, box-shadow 0.15s;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.fab:active {
+  transform: translateX(calc(50% + 212px)) scale(0.94);
+  box-shadow: 0 2px 14px var(--accent-glow);
+}
+
+@media (max-width: 480px) {
+  .fab           { right: 20px; transform: none; }
+  .fab:active    { transform: scale(0.94); }
+}
+
+/* ── Bottom sheet ── */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.74);
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in 0.18s ease;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.sheet {
   width: 100%;
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  border: 2px solid hsl(var(--secondary) / 0.2);
-  background: white;
-  color: hsl(var(--text-main));
-  transition: border-color 0.2s;
+  max-width: 480px;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 14px 24px 44px;
+  animation: slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  border-top: 1px solid var(--border-2);
 }
 
-.input:focus {
+.sheet-handle {
+  width: 38px;
+  height: 4px;
+  background: var(--border-2);
+  border-radius: 2px;
+  margin: 0 auto 24px;
+}
+
+.sheet-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 22px;
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────
+   CHAT  —  Discord messages · Spotify header
+───────────────────────────────────────────────────── */
+
+.chat-page {
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Chat header */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+/* Back / menu buttons — no bg, just icon */
+.chat-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+  border-radius: var(--radius-xs);
+}
+
+.chat-back-btn:active { opacity: 0.5; }
+
+.chat-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-header-name {
+  font-size: 0.97rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+/* Message list */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Bubble wrapper — critical: full-width so align-items works */
+.chat-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.chat-bubble-wrap.self  { align-items: flex-end;   }
+.chat-bubble-wrap.other { align-items: flex-start;  }
+
+/* Small top gap when the sender changes */
+.chat-bubble-wrap + .chat-bubble-wrap { margin-top: 2px; }
+
+/* Bubbles */
+.chat-bubble {
+  max-width: 72%;
+  padding: 9px 14px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble.self {
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: white;
+  border-bottom-right-radius: 5px;
+  font-weight: 500;
+}
+
+.chat-bubble.other {
+  background: var(--surface-2);
+  color: var(--text);
+  border-bottom-left-radius: 5px;
+}
+
+.chat-time {
+  font-size: 0.61rem;
+  color: var(--text-3);
+  margin-top: 3px;
+  padding: 0 4px;
+}
+
+/* System / reveal pill */
+.chat-system-msg  { text-align: center; margin: 16px 0; }
+
+.chat-system-pill {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 214, 10, 0.15);
+}
+
+/* Action bar */
+.chat-action-bar {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+/* Input row — Discord pill style */
+.chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border-radius: 24px;
+  padding: 6px 6px 6px 16px;
+  border: 1.5px solid var(--border-2);
+  transition: border-color 0.18s;
+}
+
+.chat-input-row:focus-within {
+  border-color: rgba(255, 45, 85, 0.35);
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.92rem;
   outline: none;
-  border-color: hsl(var(--secondary));
+  font-family: var(--font);
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
+.chat-input::placeholder { color: var(--text-3); }
+
+.chat-send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-send-btn:active:not(:disabled) { transform: scale(0.9); }
+
+/* State banners */
+.chat-state-banner {
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 10px;
+}
+
+.chat-secondary-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.chat-action-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: opacity 0.15s, transform 0.12s;
+  letter-spacing: 0.01em;
+}
+
+.chat-action-btn:active {
+  transform: scale(0.97);
+  opacity: 0.82;
+}
+
+/* Confirm overlay */
+.confirm-overlay {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 18px 16px 14px;
+  margin-bottom: 10px;
+}
+
+.confirm-overlay p {
+  font-size: 0.86rem;
+  color: var(--text-2);
+  margin-bottom: 14px;
+  line-height: 1.55;
+}
+
+.confirm-btns { display: flex; gap: 8px; }
+
+/* ── Animations ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(110%); }
+  to   { transform: translateY(0);    }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 3px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border-2); border-radius: 2px; }
+
+/* ─────────────────────────────────────────────────────
+   MOBILE  —  iOS / Android optimizations
+───────────────────────────────────────────────────── */
+
+/* Remove 300ms tap delay and iOS gray tap flash */
+button, input, textarea, select, a, [role="button"], .conf-card, .fab {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent accidental text selection on UI chrome */
+button, .conf-card, .fab, .badge, .chat-back-btn,
+.conf-avatar, .dash-section-label, .chat-header-name {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Momentum scrolling + contain overscroll */
+.dash-list, .chat-messages {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.chat-page, .dashboard {
+  overscroll-behavior: none;
+}
+
+/* ── Fix: iOS auto-zoom (any input < 16px triggers it) ── */
+.chat-input {
+  font-size: 16px;
+}
+
+/* ── Fix: OTP boxes — flex to fill available width ──
+   Prevents overflow on iPhone SE (320px) and Mini (375px) */
+.otp-row {
+  width: 100%;
+}
+
+.otp-box {
+  flex: 1;
+  min-width: 0;
+  max-width: 52px;
+}
+
+/* ── Fix: Touch targets — 44×44px minimum (Apple HIG) ── */
+.chat-back-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+}
+
+/* ── Fix: Safe area insets (iPhone X+ home indicator) ──
+   Requires viewport-fit=cover in the meta tag */
+
+.auth-bottom {
+  padding-bottom: max(48px, calc(env(safe-area-inset-bottom) + 24px));
+}
+
+.fab {
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 14px));
+}
+
+@media (max-width: 480px) {
+  .fab {
+    bottom: max(28px, calc(env(safe-area-inset-bottom) + 14px));
+  }
+  .fab:active {
+    transform: scale(0.94);
+  }
+}
+
+.sheet {
+  padding-bottom: max(44px, calc(env(safe-area-inset-bottom) + 24px));
+}
+
+.dash-list {
+  padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px));
+}
+
+.chat-action-bar {
+  padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
+}
+
+/* ── Fix: Hover states stick on touch devices ── */
+@media (hover: none) {
+  .conf-card:hover { background: transparent; }
+  .btn-accent:hover:not(:disabled) { box-shadow: 0 4px 24px var(--accent-glow); }
+  .btn-ghost:hover { color: var(--text-2); }
+}
+
+/* ── Fix: Auth heading too large on iPhone SE ── */
+.auth-heading {
+  font-size: clamp(2rem, 8.5vw, 2.6rem);
+}
+
+/* ── Fix: Tighter side padding on very small phones ── */
+@media (max-width: 360px) {
+  .auth-page    { padding: 0 20px; }
+  .otp-row      { gap: 6px; }
+  .sheet        { padding-left: 18px; padding-right: 18px; }
 }

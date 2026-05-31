@@ -1,83 +1,167 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import Input from '../components/common/Input';
-import Button from '../components/common/Button';
 
 const Register = () => {
-    const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState('');
-    const [step, setStep] = useState(1); // 1=Email, 2=OTP
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const { register, verifyOtp } = useAuth();
-    const navigate = useNavigate();
+    const [email, setEmail]         = useState('');
+    const [step, setStep]           = useState(1);
+    const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+    const [error, setError]         = useState('');
+    const [loading, setLoading]     = useState(false);
+    const { register, verifyOtp }   = useAuth();
+    const navigate                  = useNavigate();
+    const otpRefs                   = useRef([]);
 
-    const handleSubmit = async (e) => {
+    const otp = otpDigits.join('');
+
+    const handleEmailSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        if (!email.toLowerCase().trim().endsWith('@cuchd.in')) {
+            setError('Only @cuchd.in emails are allowed.');
+            return;
+        }
         setLoading(true);
-
         try {
-            if (step === 1) {
-                if (!email.toLowerCase().endsWith('@cuchd.in')) {
-                    setError('Only @cuchd.in emails are allowed.');
-                    setLoading(false);
-                    return;
-                }
-                await register(email);
-                setStep(2);
-            } else {
-                await verifyOtp(email, otp);
-                // After success, go to dashboard directly (auto-login)
-                navigate('/dashboard');
-            }
+            await register(email.toLowerCase().trim());
+            setStep(2);
         } catch (err) {
-            console.error("Registration Error:", err);
-            const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Registration failed.';
-            setError(errorMsg);
+            setError(err.response?.data?.message || err.response?.data || 'Failed to send OTP.');
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <div className="container" style={{ marginTop: '10vh' }}>
-            <div className="card">
-                <h2 style={{ textAlign: 'center', color: 'hsl(var(--secondary))', marginBottom: '1.5rem' }}>
-                    {step === 1 ? 'Join CampusCrush' : 'Verify Email'}
-                </h2>
-                <form onSubmit={handleSubmit}>
-                    {step === 1 ? (
-                        <Input
-                            label="College Email"
-                            type="email"
-                            placeholder="you@cuchd.in"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    ) : (
-                        <Input
-                            label="OTP Code from Email"
-                            type="text"
-                            placeholder="123456"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            required
-                            autoFocus
-                        />
-                    )}
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        if (otp.length < 6) { setError('Enter the 6-digit code.'); return; }
+        setError('');
+        setLoading(true);
+        try {
+            await verifyOtp(email.toLowerCase().trim(), otp);
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.response?.data?.message || err.response?.data || 'Invalid or expired OTP.');
+            setOtpDigits(['', '', '', '', '', '']);
+            otpRefs.current[0]?.focus();
+        } finally {
+            setLoading(false);
+        }
+    };
 
-                    {error && <p style={{ color: 'hsl(var(--danger))', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
+    const handleOtpChange = (index, value) => {
+        if (!/^\d*$/.test(value)) return;
+        const next = [...otpDigits];
+        next[index] = value.slice(-1);
+        setOtpDigits(next);
+        if (value && index < 5) otpRefs.current[index + 1]?.focus();
+    };
 
-                    <Button variant="secondary" type="submit" loading={loading} style={{ width: '100%' }}>
-                        {step === 1 ? 'Register' : 'Verify & Join'}
-                    </Button>
-                </form>
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: 'hsl(var(--text-muted))' }}>
-                    Already have an account? <Link to="/login" style={{ color: 'hsl(var(--primary))', fontWeight: 'bold' }}>Login</Link>
+    const handleOtpKeyDown = (index, e) => {
+        if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+            otpRefs.current[index - 1]?.focus();
+        }
+    };
+
+    const handleOtpPaste = (e) => {
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (pasted.length === 6) {
+            setOtpDigits(pasted.split(''));
+            otpRefs.current[5]?.focus();
+        }
+        e.preventDefault();
+    };
+
+    if (step === 2) {
+        return (
+            <div className="auth-page">
+                <div className="auth-top">
+                    <button
+                        className="btn-ghost"
+                        style={{ alignSelf: 'flex-start', paddingLeft: 0, marginBottom: 32 }}
+                        onClick={() => { setStep(1); setOtpDigits(['','','','','','']); setError(''); }}
+                    >
+                        ← Back
+                    </button>
+                    <div className="auth-heading" style={{ fontSize: '2rem' }}>Check your inbox</div>
+                    <div className="auth-sub">
+                        We sent a 6-digit code to{' '}
+                        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{email}</span>
+                    </div>
+
+                    <div className="otp-row" onPaste={handleOtpPaste}>
+                        {otpDigits.map((digit, i) => (
+                            <input
+                                key={i}
+                                ref={el => otpRefs.current[i] = el}
+                                className="otp-box"
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digit}
+                                autoFocus={i === 0}
+                                onChange={e => handleOtpChange(i, e.target.value)}
+                                onKeyDown={e => handleOtpKeyDown(i, e)}
+                            />
+                        ))}
+                    </div>
+
+                    {error && <p className="error-text" style={{ marginTop: 14, textAlign: 'center' }}>{error}</p>}
                 </div>
+
+                <div className="auth-bottom">
+                    <button
+                        className="btn-full btn-accent"
+                        onClick={handleOtpSubmit}
+                        disabled={loading || otp.length < 6}
+                    >
+                        {loading ? 'Verifying...' : 'Verify & Join'}
+                    </button>
+                    <p className="link-text">
+                        Didn't get it?{' '}
+                        <button onClick={handleEmailSubmit}>Resend code</button>
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="auth-page">
+            <div className="auth-top">
+                <div className="auth-logo">campuscrush</div>
+                <div className="auth-heading">Join anonymously.</div>
+                <div className="auth-sub">
+                    Send confessions. Stay hidden. Reveal when you're ready.
+                </div>
+
+                <div className="field">
+                    <label>College Email</label>
+                    <input
+                        className="field-input"
+                        type="email"
+                        placeholder="you@cuchd.in"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => e.key === 'Enter' && handleEmailSubmit(e)}
+                    />
+                </div>
+
+                {error && <p className="error-text">{error}</p>}
+            </div>
+
+            <div className="auth-bottom">
+                <button
+                    className="btn-full btn-accent"
+                    onClick={handleEmailSubmit}
+                    disabled={loading || !email}
+                >
+                    {loading ? 'Sending code...' : 'Get Started'}
+                </button>
+                <p className="link-text">
+                    Already have an account? <Link to="/login">Sign in</Link>
+                </p>
             </div>
         </div>
     );

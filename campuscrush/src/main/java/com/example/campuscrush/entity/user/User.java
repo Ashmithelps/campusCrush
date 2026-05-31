@@ -47,10 +47,6 @@ public class User {
     @Column(nullable = false)
     private String displayAlias;
 
-    // Optional metadata for hints
-    private String branch;
-    private Integer graduationYear;
-
     @Builder.Default
     private boolean shadowBanned = false; // Changed back to match DB column likely
 

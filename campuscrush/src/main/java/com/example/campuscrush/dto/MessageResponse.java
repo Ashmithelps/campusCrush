@@ -1,6 +1,7 @@
 package com.example.campuscrush.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 import com.example.campuscrush.entity.message.MessageType;
 
 public record MessageResponse(
@@ -8,5 +9,6 @@ public record MessageResponse(
         String from,
         String content,
         MessageType type,
-        Instant sentAt
+        Instant sentAt,
+        UUID senderPublicId
 ) {}

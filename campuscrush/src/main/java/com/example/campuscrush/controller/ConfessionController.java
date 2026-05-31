@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,7 +44,8 @@ public class ConfessionController {
         if (receiver == null) {
             // Roll numbers are stored in Uppercase
             receiver = userRepository.findByRollNumber(receiverId.toUpperCase())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                    .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "This roll number isn't registered on CampusCrush yet"));
         }
 
         confessionService.createConfession(sender, receiver, message);
@@ -58,6 +60,18 @@ public void reply(@PathVariable Long confessionId) {
 public void block(@PathVariable Long confessionId) {
     User user = SecurityUtils.currentUser();
     confessionService.blockConfession(confessionId, user);
+}
+
+@PostMapping("/{confessionId}/unblock")
+public void unblock(@PathVariable Long confessionId) {
+    User user = SecurityUtils.currentUser();
+    confessionService.unblockConfession(confessionId, user);
+}
+
+@GetMapping("/{confessionId}")
+public com.example.campuscrush.dto.ConfessionResponse getConfession(@PathVariable Long confessionId) {
+    User user = SecurityUtils.currentUser();
+    return confessionService.getConfessionById(confessionId, user);
 }
 
 @PostMapping("/{confessionId}/reveal")

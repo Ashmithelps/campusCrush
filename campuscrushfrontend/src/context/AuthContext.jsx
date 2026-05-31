@@ -10,31 +10,37 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (token) {
-            // In a real app, you'd fetch user profile here.
-            // For now, we decode or assume logged in.
-            // Since backend doesn't have /me endpoint yet, we trust the token until 401.
-            setUser({ authenticated: true });
+            api.get('/me')
+                .then(res => setUser(res.data))
+                .catch(() => {
+                    localStorage.removeItem('token');
+                    setToken(null);
+                    setUser(null);
+                })
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
         }
-        setLoading(false);
     }, [token]);
 
     const login = async (email) => {
-        // Step 1: Request OTP
         await api.post(`/public/auth/login?email=${email}`);
     };
 
     const register = async (email) => {
-        // Step 1: Request OTP
         await api.post(`/public/auth/register?email=${email}`);
     };
 
     const verifyOtp = async (email, otp) => {
-        // Step 2: Verify OTP and get Token
         const response = await api.post(`/public/auth/verify-otp?email=${email}&otp=${otp}`);
         const jwt = response.data;
         localStorage.setItem('token', jwt);
         setToken(jwt);
-        setUser({ authenticated: true });
+
+        const meResponse = await api.get('/me', {
+            headers: { Authorization: `Bearer ${jwt}` },
+        });
+        setUser(meResponse.data);
         return true;
     };
 

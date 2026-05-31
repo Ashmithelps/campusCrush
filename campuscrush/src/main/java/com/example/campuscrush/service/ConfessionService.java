@@ -21,6 +21,7 @@ public class ConfessionService {
     private final ConfessionRepository confessionRepository;
     private final com.example.campuscrush.repository.MessageRepository messageRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    private final EmailService emailService;
 
     public void createConfession(
             User sender,
@@ -57,7 +58,7 @@ public class ConfessionService {
 
         confessionRepository.save(confession);
 
-        // Notify Receiver
+        // Notify receiver via WebSocket (if online)
         try {
             messagingTemplate.convertAndSendToUser(
                 receiver.getPublicId().toString(),
@@ -66,6 +67,13 @@ public class ConfessionService {
             );
         } catch (Exception e) {
             System.err.println("Failed to send WebSocket notification: " + e.getMessage());
+        }
+
+        // Notify receiver via email (for when they're offline)
+        try {
+            emailService.sendConfessionNotification(receiver.getCollegeEmail());
+        } catch (Exception e) {
+            System.err.println("Failed to send confession email: " + e.getMessage());
         }
     }
     @Transactional
@@ -151,6 +159,54 @@ public void markAsRead(Long confessionId, User user) {
                             .build();
                 })
                 .toList();
+    }
+
+    @Transactional
+    public void unblockConfession(Long confessionId, User user) {
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (confession.getState() != ConfessionState.BLOCKED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Confession is not blocked");
+        }
+
+        if (!user.getId().equals(confession.getBlockedBy().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the blocker can unblock");
+        }
+
+        confession.setState(ConfessionState.UNLOCKED);
+        confession.setBlockedBy(null);
+        confessionRepository.save(confession);
+    }
+
+    public com.example.campuscrush.dto.ConfessionResponse getConfessionById(Long confessionId, User user) {
+        Confession c = confessionRepository.findById(confessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        boolean isParticipant = user.getId().equals(c.getSender().getId()) ||
+                                user.getId().equals(c.getReceiver().getId());
+        if (!isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        boolean isSender = c.getSender().getId().equals(user.getId());
+        User otherUser = isSender ? c.getReceiver() : c.getSender();
+
+        String aliasToShow = isSender
+                ? (otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString())
+                : otherUser.getDisplayAlias();
+
+        return com.example.campuscrush.dto.ConfessionResponse.builder()
+                .id(c.getId())
+                .otherUserAlias(aliasToShow)
+                .otherUserPublicId(otherUser.getPublicId())
+                .icebreakerMessage(c.getIcebreakerMessage())
+                .state(c.getState())
+                .createdAt(c.getCreatedAt())
+                .isSender(isSender)
+                .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
+                .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
+                .build();
     }
 
     @Transactional

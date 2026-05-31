@@ -100,11 +100,12 @@ public class MessageService {
 
         // 1. Add Icebreaker as the first message
         messages.add(new MessageResponse(
-            -1L, // Special ID for icebreaker
+            -1L,
             confession.getSender().getId().equals(user.getId()) ? "SELF" : "OTHER",
             confession.getIcebreakerMessage(),
             com.example.campuscrush.entity.message.MessageType.TEXT,
-            confession.getCreatedAt()
+            confession.getCreatedAt(),
+            confession.getSender().getPublicId()
         ));
 
         // 2. Add Database Messages
@@ -116,7 +117,8 @@ public class MessageService {
                         msg.getSender().getId().equals(user.getId()) ? "SELF" : "OTHER",
                         msg.getContent(),
                         msg.getType(),
-                        msg.getSentAt()
+                        msg.getSentAt(),
+                        msg.getSender().getPublicId()
                 ))
                 .toList();
         
@@ -165,25 +167,11 @@ public class MessageService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chat not unlocked yet");
         }
 
-        // BLOCKED → only blocker can send (if you allow that)
+        // BLOCKED → nobody can send
         if (state == ConfessionState.BLOCKED) {
-
-            if (confession.getBlockedBy() == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Blocked state without blocker"
-                );
-            }
-
-            // blocked user cannot send
-            if (!currentUser.getId().equals(confession.getBlockedBy().getId())) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "You are blocked from sending messages"
-                );
-            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This conversation is blocked");
         }
 
-        // UNLOCKED, REVEAL_PENDING, REVEALED → allowed
+        // UNLOCKED, REVEALED → allowed
     }
 }

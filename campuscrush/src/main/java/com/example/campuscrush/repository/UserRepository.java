@@ -14,4 +14,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPublicId(UUID publicId);
 
     Optional<User> findByRollNumber(String rollNumber);
+
+    boolean existsByDisplayAlias(String displayAlias);
 }
