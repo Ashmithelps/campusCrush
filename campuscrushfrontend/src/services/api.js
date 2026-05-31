@@ -20,3 +20,12 @@ api.interceptors.request.use(
 );
 
 export default api;
+
+// Safely extract a string message from any Axios error.
+// Spring Boot can return { message }, { detail }, a plain string, or nothing.
+export function apiError(err, fallback = 'Something went wrong.') {
+    const data = err?.response?.data;
+    if (!data) return fallback;
+    if (typeof data === 'string') return data || fallback;
+    return data.message || data.detail || data.error || fallback;
+}

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { apiError } from '../services/api';
 
 const Register = () => {
     const [email, setEmail]         = useState('');
@@ -26,7 +27,7 @@ const Register = () => {
             await register(email.toLowerCase().trim());
             setStep(2);
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data || 'Failed to send OTP.');
+            setError(apiError(err, 'Failed to send OTP.'));
         } finally {
             setLoading(false);
         }
@@ -41,7 +42,7 @@ const Register = () => {
             await verifyOtp(email.toLowerCase().trim(), otp);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data || 'Invalid or expired OTP.');
+            setError(apiError(err, 'Invalid or expired OTP.'));
             setOtpDigits(['', '', '', '', '', '']);
             otpRefs.current[0]?.focus();
         } finally {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { apiError } from '../services/api';
 import socket from '../services/socket';
 import { useNavigate } from 'react-router-dom';
 
@@ -87,7 +87,7 @@ const Dashboard = () => {
             setMessage('');
             fetchConfessions();
         } catch (err) {
-            setSendError(err.response?.data?.message || err.response?.data || 'Failed to send confession.');
+            setSendError(apiError(err, 'Failed to send confession.'));
         } finally {
             setSending(false);
         }
