@@ -120,7 +120,7 @@ const Login = () => {
                     </button>
                     <p className="link-text">
                         Didn't get it?{' '}
-                        <button onClick={handleEmailSubmit}>Resend code</button>
+                        <button onClick={handleEmailSubmit} disabled={loading}>Resend code</button>
                     </p>
                 </div>
             </div>

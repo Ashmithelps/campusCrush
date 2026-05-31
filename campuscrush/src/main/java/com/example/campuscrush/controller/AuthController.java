@@ -25,67 +25,45 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@RequestParam String email) {
-        try {
-            // 1. Normalize & Enforce Domain
-            String normalizedEmail = email.toLowerCase().trim();
-            if (!normalizedEmail.endsWith("@cuchd.in")) {
-                throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Only @cuchd.in emails Allowed"
-                );
-            }
+        String normalizedEmail = email.toLowerCase().trim();
+        if (!normalizedEmail.endsWith("@cuchd.in")) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Only @cuchd.in emails are allowed"
+            );
+        }
 
-            User user = userRepository.findByCollegeEmail(normalizedEmail).orElse(null);
+        User user = userRepository.findByCollegeEmail(normalizedEmail).orElse(null);
+
+        if (user == null) {
+            String rollNumber = normalizedEmail.split("@")[0].toUpperCase();
+            user = userRepository.findByRollNumber(rollNumber).orElse(null);
 
             if (user == null) {
-                // Check if user exists by Roll Number (to avoid duplicates if email case differed previously)
-                String[] parts = normalizedEmail.split("@");
-                String rollNumber = parts[0].toUpperCase();
-                
-                user = userRepository.findByRollNumber(rollNumber).orElse(null);
-
-                if (user == null) {
-                    // Create new user (unverified initially)
-                    user = User.builder()
-                            .collegeEmail(normalizedEmail)
-                            .rollNumber(rollNumber)
-                            .displayAlias(aliasGenerator.generate())
-                            .build();
-                    userRepository.save(user);
-                } else {
-                    // Update existing user with normalized email if needed
-                    if (!user.getCollegeEmail().equals(normalizedEmail)) {
-                        user.setCollegeEmail(normalizedEmail);
-                        userRepository.save(user);
-                    }
-                }
+                user = User.builder()
+                        .collegeEmail(normalizedEmail)
+                        .rollNumber(rollNumber)
+                        .displayAlias(aliasGenerator.generate())
+                        .build();
+                userRepository.save(user);
+            } else if (!user.getCollegeEmail().equals(normalizedEmail)) {
+                user.setCollegeEmail(normalizedEmail);
+                userRepository.save(user);
             }
-
-            // 2. Send OTP
-            authService.generateAndSendOtp(user);
-
-            return "OTP sent to " + normalizedEmail;
-
-        } catch (Exception e) {
-            e.printStackTrace(); // Print full error to console
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage());
         }
+
+        authService.generateAndSendOtp(user);
+        return "OTP sent to " + normalizedEmail;
     }
 
     @PostMapping("/login")
     public String login(@RequestParam String email) {
-        try {
-            String normalizedEmail = email.toLowerCase().trim();
-            User user = userRepository.findByCollegeEmail(normalizedEmail)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        String normalizedEmail = email.toLowerCase().trim();
+        User user = userRepository.findByCollegeEmail(normalizedEmail)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "No account found for this email. Please register first."));
 
-            // Send OTP
-            authService.generateAndSendOtp(user);
-            
-            return "OTP sent to " + normalizedEmail;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage());
-        }
+        authService.generateAndSendOtp(user);
+        return "OTP sent to " + normalizedEmail;
     }
 
     @PostMapping("/verify-otp")
