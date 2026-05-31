@@ -1,8 +1,11 @@
 package com.example.campuscrush.repository;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.example.campuscrush.entity.confession.Confession;
 import com.example.campuscrush.entity.confession.ConfessionState;
@@ -17,6 +20,9 @@ public interface ConfessionRepository
         List<ConfessionState> states
     );
 
-    @org.springframework.data.jpa.repository.Query("SELECT c FROM Confession c WHERE c.sender = :user OR c.receiver = :user ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Confession c WHERE c.sender = :user OR c.receiver = :user ORDER BY c.createdAt DESC")
     List<Confession> findAllByParticipant(User user);
+
+    @Query("SELECT COUNT(c) FROM Confession c WHERE c.sender = :sender AND c.createdAt >= :since")
+    long countBySenderSince(@Param("sender") User sender, @Param("since") Instant since);
 }

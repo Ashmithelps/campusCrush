@@ -1,5 +1,6 @@
 package com.example.campuscrush.service;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,15 @@ public class ConfessionService {
         if (sender.getId().equals(receiver.getId())) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST, "You cannot confess to yourself"
+            );
+        }
+
+        long recentCount = confessionRepository.countBySenderSince(
+            sender, Instant.now().minusSeconds(3600)
+        );
+        if (recentCount >= 5) {
+            throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS, "You can only send 5 confessions per hour"
             );
         }
 

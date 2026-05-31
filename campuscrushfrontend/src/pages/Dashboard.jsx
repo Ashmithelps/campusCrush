@@ -46,6 +46,12 @@ const Dashboard = () => {
     const [sendError, setSendError]     = useState('');
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const unread = confessions.filter(c => c.hasUnread).length;
+        document.title = unread > 0 ? `(${unread}) CampusCrush` : 'CampusCrush';
+        return () => { document.title = 'CampusCrush'; };
+    }, [confessions]);
+
     const fetchConfessions = async () => {
         try {
             const res = await api.get('/confessions');
