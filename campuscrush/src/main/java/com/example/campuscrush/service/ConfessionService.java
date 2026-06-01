@@ -12,7 +12,7 @@ import com.example.campuscrush.entity.confession.ConfessionState;
 import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.ConfessionRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
