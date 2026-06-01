@@ -24,6 +24,7 @@ public class ConfessionService {
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService;
 
+    @Transactional
     public void createConfession(
             User sender,
             User receiver,
@@ -140,6 +141,7 @@ public void markAsRead(Long confessionId, User user) {
     }
     confessionRepository.save(confession);
 }
+    @Transactional(readOnly = true)
     public List<com.example.campuscrush.dto.ConfessionResponse> getConfessions(User user) {
         return confessionRepository.findAllByParticipant(user)
                 .stream()
@@ -189,6 +191,7 @@ public void markAsRead(Long confessionId, User user) {
         confessionRepository.save(confession);
     }
 
+    @Transactional(readOnly = true)
     public com.example.campuscrush.dto.ConfessionResponse getConfessionById(Long confessionId, User user) {
         Confession c = confessionRepository.findById(confessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

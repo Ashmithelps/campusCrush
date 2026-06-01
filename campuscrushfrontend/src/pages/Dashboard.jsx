@@ -39,6 +39,7 @@ const Dashboard = () => {
     const { logout, user }   = useAuth();
     const [confessions, setConfessions] = useState([]);
     const [loading, setLoading]         = useState(true);
+    const [fetchError, setFetchError]   = useState(false);
     const [sheetOpen, setSheetOpen]     = useState(false);
     const [targetId, setTargetId]       = useState('');
     const [message, setMessage]         = useState('');
@@ -56,8 +57,10 @@ const Dashboard = () => {
         try {
             const res = await api.get('/confessions');
             setConfessions(res.data);
+            setFetchError(false);
         } catch (err) {
             console.error('Failed to fetch confessions', err);
+            setFetchError(true);
         } finally {
             setLoading(false);
         }
@@ -129,6 +132,13 @@ const Dashboard = () => {
                 {loading ? (
                     <div className="dash-empty">
                         <div className="dash-empty-title">Loading...</div>
+                    </div>
+                ) : fetchError ? (
+                    <div className="dash-empty">
+                        <div className="dash-empty-icon">⚠️</div>
+                        <div className="dash-empty-title">Could not load messages</div>
+                        <div className="dash-empty-sub">Check your connection and try again</div>
+                        <button className="btn-full btn-surface" style={{ marginTop: 16, maxWidth: 200 }} onClick={fetchConfessions}>Retry</button>
                     </div>
                 ) : confessions.length === 0 ? (
                     <div className="dash-empty">
