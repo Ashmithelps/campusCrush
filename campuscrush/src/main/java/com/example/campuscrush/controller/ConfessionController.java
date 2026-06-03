@@ -15,6 +15,7 @@ import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.UserRepository;
 import com.example.campuscrush.security.util.SecurityUtils;
 import com.example.campuscrush.service.ConfessionService;
+import com.example.campuscrush.service.EmailService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +26,7 @@ public class ConfessionController {
 
     private final ConfessionService confessionService;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @PostMapping("/{receiverId}")
     public void sendConfession(
@@ -50,6 +52,12 @@ public class ConfessionController {
 
         confessionService.createConfession(sender, receiver, message);
     }
+    @PostMapping("/invite/{rollNumber}")
+    public void inviteUser(@PathVariable String rollNumber) {
+        String email = rollNumber.toLowerCase() + "@cuchd.in";
+        emailService.sendInvite(email);
+    }
+
     @PostMapping("/{confessionId}/reply")
 public void reply(@PathVariable Long confessionId) {
     User receiver = SecurityUtils.currentUser();

@@ -937,6 +937,30 @@ button, .conf-card, .fab, .badge, .chat-back-btn,
   .btn-ghost:hover { color: var(--text-2); }
 }
 
+/* ── Invite Box ── */
+.invite-box {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.invite-msg {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin: 0 0 4px;
+}
+
+.invite-sent {
+  font-size: 0.82rem;
+  color: var(--success);
+  font-weight: 600;
+  margin: 10px 0 0;
+  text-align: center;
+}
+
 /* ── Heart Loader ── */
 .loader {
   display: flex;

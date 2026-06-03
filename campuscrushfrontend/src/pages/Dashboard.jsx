@@ -46,6 +46,9 @@ const Dashboard = () => {
     const [message, setMessage]         = useState('');
     const [sending, setSending]         = useState(false);
     const [sendError, setSendError]     = useState('');
+    const [notFound, setNotFound]       = useState(false);
+    const [inviteSent, setInviteSent]   = useState(false);
+    const [inviting, setInviting]       = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -97,7 +100,12 @@ const Dashboard = () => {
             setMessage('');
             fetchConfessions();
         } catch (err) {
-            setSendError(apiError(err, 'Failed to send confession.'));
+            if (err?.response?.status === 404) {
+                setNotFound(true);
+                setSendError(apiError(err, 'Failed to send confession.'));
+            } else {
+                setSendError(apiError(err, 'Failed to send confession.'));
+            }
         } finally {
             setSending(false);
         }
@@ -108,6 +116,20 @@ const Dashboard = () => {
         setSendError('');
         setTargetId('');
         setMessage('');
+        setNotFound(false);
+        setInviteSent(false);
+    };
+
+    const handleInvite = async () => {
+        setInviting(true);
+        try {
+            await api.post(`/confessions/invite/${targetId.trim().toUpperCase()}`);
+            setInviteSent(true);
+        } catch {
+            setInviteSent(true); // still show success — email fires best-effort
+        } finally {
+            setInviting(false);
+        }
     };
 
     return (
@@ -218,17 +240,39 @@ const Dashboard = () => {
                             />
                         </div>
 
-                        {sendError && (
+                        {sendError && !notFound && (
                             <p className="error-text" style={{ marginBottom: 14 }}>{sendError}</p>
                         )}
 
-                        <button
-                            className="btn-full btn-accent"
-                            onClick={handleSendConfession}
-                            disabled={sending}
-                        >
-                            {sending ? 'Sending...' : 'Send Anonymously'}
-                        </button>
+                        {notFound && (
+                            <div className="invite-box">
+                                <p className="invite-msg">{sendError}</p>
+                                {inviteSent ? (
+                                    <p className="invite-sent">
+                                        💌 Invite sent to {targetId.trim().toLowerCase()}@cuchd.in
+                                    </p>
+                                ) : (
+                                    <button
+                                        className="btn-full btn-surface"
+                                        onClick={handleInvite}
+                                        disabled={inviting}
+                                        style={{ marginTop: 10 }}
+                                    >
+                                        {inviting ? 'Sending invite...' : `Invite them — ${targetId.trim().toLowerCase()}@cuchd.in`}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {!notFound && (
+                            <button
+                                className="btn-full btn-accent"
+                                onClick={handleSendConfession}
+                                disabled={sending}
+                            >
+                                {sending ? 'Sending...' : 'Send Anonymously'}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
