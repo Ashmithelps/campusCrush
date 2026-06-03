@@ -50,13 +50,21 @@ public class ConfessionController {
             return java.util.Map.of("status", "CREATED");
         } else {
             String rollNumber = receiverId.toUpperCase();
-            confessionService.createInvitedConfession(sender, rollNumber, message);
+            com.example.campuscrush.entity.confession.Confession saved =
+                confessionService.createInvitedConfession(sender, rollNumber, message);
             return java.util.Map.of(
                 "status", "INVITED",
+                "confessionId", saved.getId().toString(),
                 "invitedEmail", rollNumber.toLowerCase() + "@cuchd.in"
             );
         }
     }
+    @PostMapping("/{confessionId}/invite")
+    public void sendInvite(@PathVariable Long confessionId) {
+        User sender = SecurityUtils.currentUser();
+        confessionService.sendInviteEmail(confessionId, sender);
+    }
+
     @PostMapping("/{confessionId}/reply")
 public void reply(@PathVariable Long confessionId) {
     User receiver = SecurityUtils.currentUser();

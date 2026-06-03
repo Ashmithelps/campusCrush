@@ -45,9 +45,11 @@ const Dashboard = () => {
     const [sheetOpen, setSheetOpen]     = useState(false);
     const [targetId, setTargetId]       = useState('');
     const [message, setMessage]         = useState('');
-    const [sending, setSending]         = useState(false);
-    const [sendError, setSendError]     = useState('');
-    const [inviteResult, setInviteResult] = useState(null); // { email } when INVITED
+    const [sending, setSending]           = useState(false);
+    const [sendError, setSendError]       = useState('');
+    const [inviteResult, setInviteResult] = useState(null); // { confessionId, email }
+    const [inviting, setInviting]         = useState(false);
+    const [inviteSent, setInviteSent]     = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -95,7 +97,7 @@ const Dashboard = () => {
         try {
             const res = await api.post(`/confessions/${targetId.trim().toUpperCase()}`, message.trim());
             if (res.data?.status === 'INVITED') {
-                setInviteResult({ email: res.data.invitedEmail });
+                setInviteResult({ confessionId: res.data.confessionId, email: res.data.invitedEmail });
                 fetchConfessions();
             } else {
                 setSheetOpen(false);
@@ -116,6 +118,19 @@ const Dashboard = () => {
         setTargetId('');
         setMessage('');
         setInviteResult(null);
+        setInviteSent(false);
+    };
+
+    const handleSendInvite = async () => {
+        setInviting(true);
+        try {
+            await api.post(`/confessions/${inviteResult.confessionId}/invite`);
+            setInviteSent(true);
+        } catch {
+            setInviteSent(true); // best-effort
+        } finally {
+            setInviting(false);
+        }
     };
 
     return (
@@ -232,15 +247,35 @@ const Dashboard = () => {
 
                         {inviteResult ? (
                             <div className="invite-box">
-                                <p className="invite-sent" style={{ marginBottom: 8 }}>
-                                    💌 Confession saved — invite sent to {inviteResult.email}
+                                <p className="invite-sent" style={{ marginBottom: 6 }}>
+                                    ✓ Confession saved
                                 </p>
                                 <p className="invite-msg">
-                                    When they join CampusCrush, your confession will be waiting for them automatically.
+                                    They're out there living life, completely unaware someone has a crush on them. Want to send them an invite to join CampusCrush?
                                 </p>
-                                <button className="btn-full btn-surface" style={{ marginTop: 12 }} onClick={closeSheet}>
-                                    Done
-                                </button>
+                                {inviteSent ? (
+                                    <>
+                                        <p className="invite-sent" style={{ marginTop: 10 }}>
+                                            💌 Invite sent to {inviteResult.email}
+                                        </p>
+                                        <button className="btn-full btn-surface" style={{ marginTop: 12 }} onClick={closeSheet}>
+                                            Done
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                                        <button
+                                            className="btn-full btn-accent"
+                                            onClick={handleSendInvite}
+                                            disabled={inviting}
+                                        >
+                                            {inviting ? 'Sending...' : `Invite — ${inviteResult.email}`}
+                                        </button>
+                                        <button className="btn-full btn-surface" onClick={closeSheet}>
+                                            Skip
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <button

@@ -25,7 +25,7 @@ public class ConfessionService {
     private final EmailService emailService;
 
     @Transactional
-    public void createInvitedConfession(User sender, String receiverRollNumber, String message) {
+    public Confession createInvitedConfession(User sender, String receiverRollNumber, String message) {
         if (confessionRepository.existsBySenderAndReceiverRollNumberAndState(
                 sender, receiverRollNumber, ConfessionState.INVITED)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -40,8 +40,22 @@ public class ConfessionService {
                 .receiverHasUnread(false)
                 .build();
 
-        confessionRepository.save(confession);
-        emailService.sendInvite(receiverRollNumber.toLowerCase() + "@cuchd.in");
+        return confessionRepository.save(confession);
+    }
+
+    @Transactional
+    public void sendInviteEmail(Long confessionId, User sender) {
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (!confession.getSender().getId().equals(sender.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (confession.getState() != ConfessionState.INVITED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Confession is not in invited state");
+        }
+
+        emailService.sendInvite(confession.getReceiverRollNumber().toLowerCase() + "@cuchd.in");
     }
 
     @Transactional
