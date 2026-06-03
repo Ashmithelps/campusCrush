@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import HeartLoader from '../components/HeartLoader';
 import { useAuth } from '../context/AuthContext';
 import api, { apiError } from '../services/api';
 import socket from '../services/socket';
@@ -130,8 +131,8 @@ const Dashboard = () => {
             {/* List */}
             <div className="dash-list">
                 {loading ? (
-                    <div className="dash-empty">
-                        <div className="dash-empty-title">Loading...</div>
+                    <div className="loader" style={{ minHeight: '60dvh' }}>
+                        <HeartLoader size={80} />
                     </div>
                 ) : fetchError ? (
                     <div className="dash-empty">

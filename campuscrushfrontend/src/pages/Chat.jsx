@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from '../context/AuthContext';
+import HeartLoader from '../components/HeartLoader';
 
 const AVATAR_COLORS = [
     '#FF2D55', '#FF6B00', '#FFB800', '#1DB954',
@@ -283,9 +284,9 @@ const Chat = () => {
             {/* Messages */}
             <div className="chat-messages">
                 {loading && (
-                    <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: '0.85rem', marginTop: 24 }}>
-                        Loading...
-                    </p>
+                    <div className="loader" style={{ minHeight: '40dvh' }}>
+                        <HeartLoader size={70} />
+                    </div>
                 )}
 
                 {!loading && messages.length === 0 && !error && (
@@ -436,8 +437,8 @@ const Chat = () => {
 
                         {/* Loading state */}
                         {loading && (
-                            <div className="chat-state-banner" style={{ marginBottom: 0 }}>
-                                Loading...
+                            <div className="loader" style={{ minHeight: '20dvh' }}>
+                                <HeartLoader size={60} />
                             </div>
                         )}
                     </>

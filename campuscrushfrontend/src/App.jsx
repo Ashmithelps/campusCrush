@@ -5,11 +5,12 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
+import HeartLoader from './components/HeartLoader';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="loader">Loading...</div>;
+  if (loading) return <div className="loader"><HeartLoader /></div>;
   if (!user) return <Navigate to="/login" replace />;
 
   return children;
@@ -19,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="loader">Loading...</div>;
+  if (loading) return <div className="loader"><HeartLoader /></div>;
   if (user) return <Navigate to="/dashboard" replace />;
 
   return children;
