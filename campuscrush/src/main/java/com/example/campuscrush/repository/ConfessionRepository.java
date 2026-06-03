@@ -20,6 +20,12 @@ public interface ConfessionRepository
         List<ConfessionState> states
     );
 
+    java.util.Optional<Confession> findFirstBySenderAndReceiverAndStateIn(
+        User sender,
+        User receiver,
+        List<ConfessionState> states
+    );
+
     @Query("SELECT c FROM Confession c JOIN FETCH c.sender JOIN FETCH c.receiver WHERE c.sender = :user OR c.receiver = :user ORDER BY c.createdAt DESC")
     List<Confession> findAllByParticipant(@Param("user") User user);
 

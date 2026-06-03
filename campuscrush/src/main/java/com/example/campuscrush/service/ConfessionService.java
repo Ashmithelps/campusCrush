@@ -46,17 +46,39 @@ public class ConfessionService {
             );
         }
 
-        boolean alreadySent =
-            confessionRepository.existsBySenderAndReceiverAndStateIn(
+        java.util.Optional<Confession> existing =
+            confessionRepository.findFirstBySenderAndReceiverAndStateIn(
                 sender,
                 receiver,
                 List.of(ConfessionState.CREATED, ConfessionState.UNLOCKED, ConfessionState.BLOCKED)
             );
 
-        if (alreadySent) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Confession already sent"
-            );
+        if (existing.isPresent()) {
+            Confession confession = existing.get();
+            com.example.campuscrush.entity.message.Message extra =
+                com.example.campuscrush.entity.message.Message.builder()
+                    .confession(confession)
+                    .sender(sender)
+                    .content(message)
+                    .build();
+            messageRepository.save(extra);
+            confession.setSenderHasUnread(false);
+            confession.setReceiverHasUnread(true);
+            confessionRepository.save(confession);
+            try {
+                messagingTemplate.convertAndSendToUser(
+                    receiver.getPublicId().toString(),
+                    "/queue/confessions",
+                    "NEW_MESSAGE"
+                );
+                messagingTemplate.convertAndSend(
+                    "/topic/confession/" + confession.getId(),
+                    "NEW_MESSAGE"
+                );
+            } catch (Exception e) {
+                System.err.println("Failed to send WebSocket notification: " + e.getMessage());
+            }
+            return;
         }
 
         Confession confession = Confession.builder()
