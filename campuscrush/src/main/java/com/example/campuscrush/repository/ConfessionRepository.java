@@ -26,9 +26,13 @@ public interface ConfessionRepository
         List<ConfessionState> states
     );
 
-    @Query("SELECT c FROM Confession c JOIN FETCH c.sender JOIN FETCH c.receiver WHERE c.sender = :user OR c.receiver = :user ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Confession c JOIN FETCH c.sender LEFT JOIN FETCH c.receiver WHERE c.sender = :user OR c.receiver = :user ORDER BY c.createdAt DESC")
     List<Confession> findAllByParticipant(@Param("user") User user);
 
     @Query("SELECT COUNT(c) FROM Confession c WHERE c.sender = :sender AND c.createdAt >= :since")
     long countBySenderSince(@Param("sender") User sender, @Param("since") Instant since);
+
+    List<Confession> findByReceiverRollNumberAndState(String receiverRollNumber, ConfessionState state);
+
+    boolean existsBySenderAndReceiverRollNumberAndState(User sender, String receiverRollNumber, ConfessionState state);
 }

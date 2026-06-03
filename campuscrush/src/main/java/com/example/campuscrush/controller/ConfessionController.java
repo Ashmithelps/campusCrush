@@ -15,7 +15,6 @@ import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.UserRepository;
 import com.example.campuscrush.security.util.SecurityUtils;
 import com.example.campuscrush.service.ConfessionService;
-import com.example.campuscrush.service.EmailService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,38 +25,38 @@ public class ConfessionController {
 
     private final ConfessionService confessionService;
     private final UserRepository userRepository;
-    private final EmailService emailService;
 
     @PostMapping("/{receiverId}")
-    public void sendConfession(
+    public java.util.Map<String, String> sendConfession(
             @PathVariable String receiverId,
             @RequestBody String message
     ) {
         User sender = SecurityUtils.currentUser();
-        User receiver;
+        User receiver = null;
 
         try {
             UUID id = UUID.fromString(receiverId);
             receiver = userRepository.findByPublicId(id).orElse(null);
         } catch (IllegalArgumentException e) {
-            receiver = null;
+            // not a UUID — fall through to roll number lookup
         }
 
         if (receiver == null) {
-            // Roll numbers are stored in Uppercase
-            receiver = userRepository.findByRollNumber(receiverId.toUpperCase())
-                    .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "They're out there living life, completely unaware someone has a crush on them. Invite them to CampusCrush and change that."));
+            receiver = userRepository.findByRollNumber(receiverId.toUpperCase()).orElse(null);
         }
 
-        confessionService.createConfession(sender, receiver, message);
+        if (receiver != null) {
+            confessionService.createConfession(sender, receiver, message);
+            return java.util.Map.of("status", "CREATED");
+        } else {
+            String rollNumber = receiverId.toUpperCase();
+            confessionService.createInvitedConfession(sender, rollNumber, message);
+            return java.util.Map.of(
+                "status", "INVITED",
+                "invitedEmail", rollNumber.toLowerCase() + "@cuchd.in"
+            );
+        }
     }
-    @PostMapping("/invite/{rollNumber}")
-    public void inviteUser(@PathVariable String rollNumber) {
-        String email = rollNumber.toLowerCase() + "@cuchd.in";
-        emailService.sendInvite(email);
-    }
-
     @PostMapping("/{confessionId}/reply")
 public void reply(@PathVariable Long confessionId) {
     User receiver = SecurityUtils.currentUser();

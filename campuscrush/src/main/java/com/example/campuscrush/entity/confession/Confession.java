@@ -40,6 +40,9 @@ public class Confession {
     @ManyToOne(fetch = FetchType.LAZY)
     private User receiver;
 
+    // Populated only when state = INVITED (receiver not yet registered)
+    private String receiverRollNumber;
+
     @Enumerated(EnumType.STRING)
     private ConfessionState state;
 

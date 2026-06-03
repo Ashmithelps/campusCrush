@@ -25,6 +25,45 @@ public class ConfessionService {
     private final EmailService emailService;
 
     @Transactional
+    public void createInvitedConfession(User sender, String receiverRollNumber, String message) {
+        if (confessionRepository.existsBySenderAndReceiverRollNumberAndState(
+                sender, receiverRollNumber, ConfessionState.INVITED)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "You've already sent an invite to this person. We'll notify you when they join.");
+        }
+
+        Confession confession = Confession.builder()
+                .sender(sender)
+                .receiverRollNumber(receiverRollNumber)
+                .icebreakerMessage(message)
+                .state(ConfessionState.INVITED)
+                .receiverHasUnread(false)
+                .build();
+
+        confessionRepository.save(confession);
+        emailService.sendInvite(receiverRollNumber.toLowerCase() + "@cuchd.in");
+    }
+
+    @Transactional
+    public void resolveInvitedConfessions(User user) {
+        List<Confession> pending = confessionRepository.findByReceiverRollNumberAndState(
+                user.getRollNumber(), ConfessionState.INVITED);
+
+        for (Confession c : pending) {
+            c.setReceiver(user);
+            c.setReceiverRollNumber(null);
+            c.setState(ConfessionState.CREATED);
+            c.setReceiverHasUnread(true);
+            confessionRepository.save(c);
+            try {
+                emailService.sendConfessionNotification(user.getCollegeEmail());
+            } catch (Exception e) {
+                System.err.println("Failed to notify new user of waiting confession: " + e.getMessage());
+            }
+        }
+    }
+
+    @Transactional
     public void createConfession(
             User sender,
             User receiver,
@@ -169,21 +208,26 @@ public void markAsRead(Long confessionId, User user) {
                 .stream()
                 .map(c -> {
                     boolean isSender = c.getSender().getId().equals(user.getId());
-                    User otherUser = isSender ? c.getReceiver() : c.getSender();
-                    
+
                     String aliasToShow;
-                    if (isSender) {
-                        // If I sent it, I want to see WHO I sent it to (Roll Number)
-                        aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
+                    java.util.UUID otherUserPublicId = null;
+
+                    if (c.getState() == ConfessionState.INVITED) {
+                        aliasToShow = c.getReceiverRollNumber();
                     } else {
-                        // If I received it, I see their Anonymous Alias
-                        aliasToShow = otherUser.getDisplayAlias();
+                        User otherUser = isSender ? c.getReceiver() : c.getSender();
+                        otherUserPublicId = otherUser.getPublicId();
+                        if (isSender) {
+                            aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
+                        } else {
+                            aliasToShow = otherUser.getDisplayAlias();
+                        }
                     }
 
                     return com.example.campuscrush.dto.ConfessionResponse.builder()
                             .id(c.getId())
                             .otherUserAlias(aliasToShow)
-                            .otherUserPublicId(otherUser.getPublicId())
+                            .otherUserPublicId(otherUserPublicId)
                             .icebreakerMessage(c.getIcebreakerMessage())
                             .state(c.getState())
                             .createdAt(c.getCreatedAt())
@@ -219,22 +263,30 @@ public void markAsRead(Long confessionId, User user) {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         boolean isParticipant = user.getId().equals(c.getSender().getId()) ||
-                                user.getId().equals(c.getReceiver().getId());
+                                (c.getReceiver() != null && user.getId().equals(c.getReceiver().getId()));
         if (!isParticipant) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
 
         boolean isSender = c.getSender().getId().equals(user.getId());
-        User otherUser = isSender ? c.getReceiver() : c.getSender();
 
-        String aliasToShow = isSender
-                ? (otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString())
-                : otherUser.getDisplayAlias();
+        String aliasToShow;
+        java.util.UUID otherUserPublicId = null;
+
+        if (c.getState() == ConfessionState.INVITED) {
+            aliasToShow = c.getReceiverRollNumber();
+        } else {
+            User otherUser = isSender ? c.getReceiver() : c.getSender();
+            otherUserPublicId = otherUser.getPublicId();
+            aliasToShow = isSender
+                    ? (otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString())
+                    : otherUser.getDisplayAlias();
+        }
 
         return com.example.campuscrush.dto.ConfessionResponse.builder()
                 .id(c.getId())
                 .otherUserAlias(aliasToShow)
-                .otherUserPublicId(otherUser.getPublicId())
+                .otherUserPublicId(otherUserPublicId)
                 .icebreakerMessage(c.getIcebreakerMessage())
                 .state(c.getState())
                 .createdAt(c.getCreatedAt())

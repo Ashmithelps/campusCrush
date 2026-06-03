@@ -11,6 +11,7 @@ import com.example.campuscrush.alias.AliasGenerator;
 import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.UserRepository;
 import com.example.campuscrush.service.AuthService;
+import com.example.campuscrush.service.ConfessionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +23,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final AliasGenerator aliasGenerator;
     private final AuthService authService;
+    private final ConfessionService confessionService;
 
     @PostMapping("/register")
     public String register(@RequestParam String email) {
@@ -45,6 +47,7 @@ public class AuthController {
                         .displayAlias(aliasGenerator.generate())
                         .build();
                 userRepository.save(user);
+                confessionService.resolveInvitedConfessions(user);
             } else if (!user.getCollegeEmail().equals(normalizedEmail)) {
                 user.setCollegeEmail(normalizedEmail);
                 userRepository.save(user);

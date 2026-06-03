@@ -6,6 +6,7 @@ import socket from '../services/socket';
 import { useNavigate } from 'react-router-dom';
 
 const STATE_BADGE = {
+    INVITED:  { label: 'Invited',  cls: 'badge-invited'  },
     CREATED:  { label: 'Pending',  cls: 'badge-created'  },
     UNLOCKED: { label: 'Active',   cls: 'badge-unlocked' },
     BLOCKED:  { label: 'Blocked',  cls: 'badge-blocked'  },
@@ -46,9 +47,7 @@ const Dashboard = () => {
     const [message, setMessage]         = useState('');
     const [sending, setSending]         = useState(false);
     const [sendError, setSendError]     = useState('');
-    const [notFound, setNotFound]       = useState(false);
-    const [inviteSent, setInviteSent]   = useState(false);
-    const [inviting, setInviting]       = useState(false);
+    const [inviteResult, setInviteResult] = useState(null); // { email } when INVITED
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -94,18 +93,18 @@ const Dashboard = () => {
         }
         setSending(true);
         try {
-            await api.post(`/confessions/${targetId.trim().toUpperCase()}`, message.trim());
-            setSheetOpen(false);
-            setTargetId('');
-            setMessage('');
-            fetchConfessions();
-        } catch (err) {
-            if (err?.response?.status === 404) {
-                setNotFound(true);
-                setSendError(apiError(err, 'Failed to send confession.'));
+            const res = await api.post(`/confessions/${targetId.trim().toUpperCase()}`, message.trim());
+            if (res.data?.status === 'INVITED') {
+                setInviteResult({ email: res.data.invitedEmail });
+                fetchConfessions();
             } else {
-                setSendError(apiError(err, 'Failed to send confession.'));
+                setSheetOpen(false);
+                setTargetId('');
+                setMessage('');
+                fetchConfessions();
             }
+        } catch (err) {
+            setSendError(apiError(err, 'Failed to send confession.'));
         } finally {
             setSending(false);
         }
@@ -116,20 +115,7 @@ const Dashboard = () => {
         setSendError('');
         setTargetId('');
         setMessage('');
-        setNotFound(false);
-        setInviteSent(false);
-    };
-
-    const handleInvite = async () => {
-        setInviting(true);
-        try {
-            await api.post(`/confessions/invite/${targetId.trim().toUpperCase()}`);
-            setInviteSent(true);
-        } catch {
-            setInviteSent(true); // still show success — email fires best-effort
-        } finally {
-            setInviting(false);
-        }
+        setInviteResult(null);
     };
 
     return (
@@ -178,8 +164,8 @@ const Dashboard = () => {
                         return (
                             <div
                                 key={c.id}
-                                className={`conf-card${c.hasUnread ? ' conf-card--unread' : ''}`}
-                                onClick={() => navigate(`/chat/${c.id}`)}
+                                className={`conf-card${c.hasUnread ? ' conf-card--unread' : ''}${c.state === 'INVITED' ? ' conf-card--invited' : ''}`}
+                                onClick={() => c.state !== 'INVITED' && navigate(`/chat/${c.id}`)}
                             >
                                 {/* Avatar */}
                                 <div
@@ -240,31 +226,23 @@ const Dashboard = () => {
                             />
                         </div>
 
-                        {sendError && !notFound && (
+                        {sendError && (
                             <p className="error-text" style={{ marginBottom: 14 }}>{sendError}</p>
                         )}
 
-                        {notFound && (
+                        {inviteResult ? (
                             <div className="invite-box">
-                                <p className="invite-msg">{sendError}</p>
-                                {inviteSent ? (
-                                    <p className="invite-sent">
-                                        💌 Invite sent to {targetId.trim().toLowerCase()}@cuchd.in
-                                    </p>
-                                ) : (
-                                    <button
-                                        className="btn-full btn-surface"
-                                        onClick={handleInvite}
-                                        disabled={inviting}
-                                        style={{ marginTop: 10 }}
-                                    >
-                                        {inviting ? 'Sending invite...' : `Invite them — ${targetId.trim().toLowerCase()}@cuchd.in`}
-                                    </button>
-                                )}
+                                <p className="invite-sent" style={{ marginBottom: 8 }}>
+                                    💌 Confession saved — invite sent to {inviteResult.email}
+                                </p>
+                                <p className="invite-msg">
+                                    When they join CampusCrush, your confession will be waiting for them automatically.
+                                </p>
+                                <button className="btn-full btn-surface" style={{ marginTop: 12 }} onClick={closeSheet}>
+                                    Done
+                                </button>
                             </div>
-                        )}
-
-                        {!notFound && (
+                        ) : (
                             <button
                                 className="btn-full btn-accent"
                                 onClick={handleSendConfession}
