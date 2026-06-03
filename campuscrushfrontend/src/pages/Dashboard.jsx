@@ -155,7 +155,7 @@ const Dashboard = () => {
                         return (
                             <div
                                 key={c.id}
-                                className="conf-card"
+                                className={`conf-card${c.hasUnread ? ' conf-card--unread' : ''}`}
                                 onClick={() => navigate(`/chat/${c.id}`)}
                             >
                                 {/* Avatar */}
@@ -169,12 +169,11 @@ const Dashboard = () => {
                                 {/* Body */}
                                 <div className="conf-card-body">
                                     <div className="conf-card-top">
-                                        <span className="conf-card-alias">{alias}</span>
-                                        <span className="conf-card-time">{timeAgo(c.createdAt)}</span>
-                                    </div>
-                                    <div className="conf-card-preview">
-                                        <span className="conf-card-msg">{c.icebreakerMessage}</span>
-                                        <span className={`badge ${badge.cls}`}>{badge.label}</span>
+                                        <span className={`conf-card-alias${c.hasUnread ? ' conf-card-alias--unread' : ''}`}>{alias}</span>
+                                        <div className="conf-card-meta">
+                                            <span className={`badge ${badge.cls}`}>{badge.label}</span>
+                                            <span className="conf-card-time">{timeAgo(c.createdAt)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
