@@ -44,6 +44,27 @@ public class ConfessionService {
     }
 
     @Transactional
+    public java.util.Map<String, String> processConfession(User sender, User receiver, String message) {
+        // Check for mutual crush first
+        java.util.Optional<Confession> reverse =
+            confessionRepository.findFirstBySenderAndReceiverAndStateIn(
+                receiver, sender,
+                List.of(ConfessionState.CREATED, ConfessionState.UNLOCKED)
+            );
+
+        if (reverse.isPresent()) {
+            triggerMutualReveal(reverse.get());
+            return java.util.Map.of(
+                "status", "MUTUAL",
+                "confessionId", reverse.get().getId().toString()
+            );
+        }
+
+        createConfession(sender, receiver, message);
+        return java.util.Map.of("status", "CREATED");
+    }
+
+    @Transactional
     public void triggerMutualReveal(Confession confession) {
         confession.setState(ConfessionState.REVEALED);
         confession.setIsRevealed(true);
