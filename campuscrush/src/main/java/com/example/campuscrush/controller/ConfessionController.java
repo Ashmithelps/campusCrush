@@ -46,6 +46,24 @@ public class ConfessionController {
         }
 
         if (receiver != null) {
+            // Check for mutual crush — does receiver already have a confession to sender?
+            java.util.Optional<com.example.campuscrush.entity.confession.Confession> reverse =
+                confessionRepository.findFirstBySenderAndReceiverAndStateIn(
+                    receiver, sender,
+                    java.util.List.of(
+                        com.example.campuscrush.entity.confession.ConfessionState.CREATED,
+                        com.example.campuscrush.entity.confession.ConfessionState.UNLOCKED
+                    )
+                );
+
+            if (reverse.isPresent()) {
+                confessionService.triggerMutualReveal(reverse.get());
+                return java.util.Map.of(
+                    "status", "MUTUAL",
+                    "confessionId", reverse.get().getId().toString()
+                );
+            }
+
             confessionService.createConfession(sender, receiver, message);
             return java.util.Map.of("status", "CREATED");
         } else {
@@ -59,6 +77,12 @@ public class ConfessionController {
             );
         }
     }
+    @PostMapping("/{confessionId}/mutual-seen")
+    public void markMutualSeen(@PathVariable Long confessionId) {
+        User user = SecurityUtils.currentUser();
+        confessionService.markMutualSeen(confessionId, user);
+    }
+
     @PostMapping("/{confessionId}/invite")
     public void sendInvite(@PathVariable Long confessionId) {
         User sender = SecurityUtils.currentUser();

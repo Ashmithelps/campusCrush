@@ -44,6 +44,56 @@ public class ConfessionService {
     }
 
     @Transactional
+    public void triggerMutualReveal(Confession confession) {
+        confession.setState(ConfessionState.REVEALED);
+        confession.setIsRevealed(true);
+        confession.setSenderHasUnread(true);
+        confession.setReceiverHasUnread(true);
+        confession.setMutualSeenBySender(false);
+        confession.setMutualSeenByReceiver(false);
+        confessionRepository.save(confession);
+
+        com.example.campuscrush.entity.message.Message systemMsg =
+            com.example.campuscrush.entity.message.Message.builder()
+                .confession(confession)
+                .sender(confession.getSender())
+                .content("💕 It's mutual — you both had feelings for each other all along.")
+                .type(com.example.campuscrush.entity.message.MessageType.MUTUAL)
+                .build();
+        messageRepository.save(systemMsg);
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                confession.getSender().getPublicId().toString(),
+                "/queue/confessions", "MUTUAL"
+            );
+            messagingTemplate.convertAndSendToUser(
+                confession.getReceiver().getPublicId().toString(),
+                "/queue/confessions", "MUTUAL"
+            );
+            messagingTemplate.convertAndSend(
+                "/topic/confession/" + confession.getId(), "MUTUAL"
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to send mutual WebSocket notification: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void markMutualSeen(Long confessionId, User user) {
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (confession.getSender().getId().equals(user.getId())) {
+            confession.setMutualSeenBySender(true);
+        } else if (confession.getReceiver() != null &&
+                   confession.getReceiver().getId().equals(user.getId())) {
+            confession.setMutualSeenByReceiver(true);
+        }
+        confessionRepository.save(confession);
+    }
+
+    @Transactional
     public void sendInviteEmail(Long confessionId, User sender) {
         Confession confession = confessionRepository.findById(confessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -248,6 +298,7 @@ public void markAsRead(Long confessionId, User user) {
                             .isSender(isSender)
                             .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
                             .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
+                            .showMutualAnimation(isSender ? Boolean.FALSE.equals(c.getMutualSeenBySender()) : Boolean.FALSE.equals(c.getMutualSeenByReceiver()))
                             .build();
                 })
                 .toList();
@@ -297,6 +348,10 @@ public void markAsRead(Long confessionId, User user) {
                     : otherUser.getDisplayAlias();
         }
 
+        boolean showMutual = isSender
+                ? Boolean.FALSE.equals(c.getMutualSeenBySender())
+                : Boolean.FALSE.equals(c.getMutualSeenByReceiver());
+
         return com.example.campuscrush.dto.ConfessionResponse.builder()
                 .id(c.getId())
                 .otherUserAlias(aliasToShow)
@@ -307,6 +362,7 @@ public void markAsRead(Long confessionId, User user) {
                 .isSender(isSender)
                 .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
                 .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
+                .showMutualAnimation(showMutual)
                 .build();
     }
 

@@ -943,6 +943,92 @@ button, .conf-card, .fab, .badge, .chat-back-btn,
   .btn-ghost:hover { color: var(--text-2); }
 }
 
+/* ── Mutual Crush Overlay ── */
+.mutual-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: radial-gradient(ellipse at center, #2d0a1a 0%, #120008 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mutual-heart {
+  position: absolute;
+  bottom: -60px;
+  animation: heart-float linear infinite;
+  opacity: 0;
+  user-select: none;
+}
+
+@keyframes heart-float {
+  0%   { transform: translateY(0)   rotate(-10deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.7; }
+  100% { transform: translateY(-110vh) rotate(10deg); opacity: 0; }
+}
+
+.mutual-content {
+  text-align: center;
+  padding: 0 32px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.mutual-content--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mutual-emoji {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: mutual-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mutual-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+.mutual-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+.mutual-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.6;
+  margin: 0 0 32px;
+}
+
+.mutual-btn {
+  background: linear-gradient(135deg, #ff2d55, #bf5af2);
+  color: #fff;
+  border: none;
+  border-radius: 100px;
+  padding: 14px 36px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 32px rgba(255, 45, 85, 0.4);
+  animation: mutual-btn-in 0.4s ease;
+}
+
+@keyframes mutual-btn-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Invite Box ── */
 .invite-box {
   background: color-mix(in srgb, var(--accent) 8%, transparent);

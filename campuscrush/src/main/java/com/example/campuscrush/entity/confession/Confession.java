@@ -65,4 +65,11 @@ public class Confession {
 
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    // Mutual crush animation — shown once per user then cleared
+    @Builder.Default
+    private Boolean mutualSeenBySender = true;
+
+    @Builder.Default
+    private Boolean mutualSeenByReceiver = true;
 }

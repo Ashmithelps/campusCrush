@@ -4,6 +4,7 @@ import api from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from '../context/AuthContext';
 import HeartLoader from '../components/HeartLoader';
+import MutualCrushOverlay from '../components/MutualCrushOverlay';
 
 const AVATAR_COLORS = [
     '#FF2D55', '#FF6B00', '#FFB800', '#1DB954',
@@ -31,6 +32,7 @@ const Chat = () => {
     const [confirmBlock, setConfirmBlock]   = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [menuOpen, setMenuOpen]           = useState(false);
+    const [showMutual, setShowMutual]       = useState(false);
 
     const messagesEndRef  = useRef(null);
     const subscriptionRef = useRef(null);
@@ -48,6 +50,7 @@ const Chat = () => {
                 confData = all.data.find(c => c.id.toString() === confessionId) ?? null;
             }
             setConfession(confData);
+            if (confData?.showMutualAnimation) setShowMutual(true);
             if (!confData) setError('Could not load this conversation.');
         } catch (err) {
             console.error('Failed to fetch confession', err);
@@ -76,8 +79,10 @@ const Chat = () => {
         const token = localStorage.getItem('token');
         if (token) {
             socketService.connect(token);
-            socketService.subscribe(`/topic/confession/${confessionId}`, () => {
-                // Only re-fetch messages — no need to re-fetch confession on every message
+            socketService.subscribe(`/topic/confession/${confessionId}`, (event) => {
+                if (event === 'MUTUAL') {
+                    setShowMutual(true);
+                }
                 fetchMessages();
                 api.post(`/confessions/${confessionId}/read`).catch(() => {});
             }).then(sub => { subscriptionRef.current = sub; });
@@ -438,6 +443,15 @@ const Chat = () => {
                     </>
                 )}
             </div>
+            {showMutual && (
+                <MutualCrushOverlay
+                    onDone={() => {
+                        api.post(`/confessions/${confessionId}/mutual-seen`).catch(() => {});
+                        setShowMutual(false);
+                        fetchAll();
+                    }}
+                />
+            )}
         </div>
     );
 };

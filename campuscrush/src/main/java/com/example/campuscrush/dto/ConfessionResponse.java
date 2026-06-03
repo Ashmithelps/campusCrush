@@ -27,4 +27,5 @@ public class ConfessionResponse {
     
     private Boolean hasUnread;
     private Boolean isRevealed;
+    private Boolean showMutualAnimation;
 }

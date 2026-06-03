@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import HeartLoader from '../components/HeartLoader';
+import MutualCrushOverlay from '../components/MutualCrushOverlay';
 import { useAuth } from '../context/AuthContext';
 import api, { apiError } from '../services/api';
 import socket from '../services/socket';
@@ -45,6 +46,7 @@ const Dashboard = () => {
     const [sheetOpen, setSheetOpen]     = useState(false);
     const [targetId, setTargetId]       = useState('');
     const [message, setMessage]         = useState('');
+    const [mutualConfessionId, setMutualConfessionId] = useState(null);
     const [sending, setSending]           = useState(false);
     const [sendError, setSendError]       = useState('');
     const [inviteResult, setInviteResult] = useState(null); // { confessionId, email }
@@ -96,7 +98,10 @@ const Dashboard = () => {
         setSending(true);
         try {
             const res = await api.post(`/confessions/${targetId.trim().toUpperCase()}`, message.trim());
-            if (res.data?.status === 'INVITED') {
+            if (res.data?.status === 'MUTUAL') {
+                closeSheet();
+                setMutualConfessionId(res.data.confessionId);
+            } else if (res.data?.status === 'INVITED') {
                 setInviteResult({ confessionId: res.data.confessionId, email: res.data.invitedEmail });
                 fetchConfessions();
             } else {
@@ -211,6 +216,17 @@ const Dashboard = () => {
                 <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
                 Confess
             </button>
+
+            {/* Mutual Crush Overlay */}
+            {mutualConfessionId && (
+                <MutualCrushOverlay
+                    onDone={() => {
+                        api.post(`/confessions/${mutualConfessionId}/mutual-seen`).catch(() => {});
+                        setMutualConfessionId(null);
+                        navigate(`/chat/${mutualConfessionId}`);
+                    }}
+                />
+            )}
 
             {/* Bottom Sheet */}
             {sheetOpen && (
