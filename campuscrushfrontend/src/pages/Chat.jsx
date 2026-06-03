@@ -435,12 +435,6 @@ const Chat = () => {
                             </form>
                         )}
 
-                        {/* Loading state */}
-                        {loading && (
-                            <div className="loader" style={{ minHeight: '20dvh' }}>
-                                <HeartLoader size={60} />
-                            </div>
-                        )}
                     </>
                 )}
             </div>
