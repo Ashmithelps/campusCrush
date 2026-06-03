@@ -46,18 +46,18 @@ public class ConfessionService {
             );
         }
 
-        // TODO: re-enable duplicate check after testing
-        // boolean alreadySent =
-        //     confessionRepository.existsBySenderAndReceiverAndStateIn(
-        //         sender,
-        //         receiver,
-        //         List.of(ConfessionState.CREATED, ConfessionState.UNLOCKED, ConfessionState.BLOCKED)
-        //     );
-        // if (alreadySent) {
-        //     throw new ResponseStatusException(
-        //         HttpStatus.BAD_REQUEST, "Confession already sent"
-        //     );
-        // }
+        boolean alreadySent =
+            confessionRepository.existsBySenderAndReceiverAndStateIn(
+                sender,
+                receiver,
+                List.of(ConfessionState.CREATED, ConfessionState.UNLOCKED, ConfessionState.BLOCKED)
+            );
+
+        if (alreadySent) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Confession already sent"
+            );
+        }
 
         Confession confession = Confession.builder()
                 .sender(sender)
