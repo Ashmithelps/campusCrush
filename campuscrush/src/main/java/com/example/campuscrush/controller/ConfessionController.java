@@ -45,7 +45,7 @@ public class ConfessionController {
             // Roll numbers are stored in Uppercase
             receiver = userRepository.findByRollNumber(receiverId.toUpperCase())
                     .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "This roll number isn't registered on CampusCrush yet"));
+                        HttpStatus.NOT_FOUND, "They're out there living life, completely unaware someone has a crush on them. Invite them to CampusCrush and change that."));
         }
 
         confessionService.createConfession(sender, receiver, message);
