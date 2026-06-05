@@ -142,9 +142,9 @@ public class ConfessionService {
         }
 
         if (confession.getLastInviteSentAt() != null &&
-                confession.getLastInviteSentAt().plusSeconds(86400).isAfter(java.time.Instant.now())) {
+                confession.getLastInviteSentAt().plusSeconds(7 * 24 * 3600L).isAfter(java.time.Instant.now())) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                "Invite already sent. You can resend after 24 hours.");
+                "Invite already sent. You can resend after 7 days.");
         }
 
         confession.setLastInviteSentAt(java.time.Instant.now());
