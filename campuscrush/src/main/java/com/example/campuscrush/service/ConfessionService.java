@@ -26,6 +26,12 @@ public class ConfessionService {
 
     @Transactional
     public Confession createInvitedConfession(User sender, String receiverRollNumber, String message) {
+        if (message == null || message.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be empty");
+        }
+        if (message.length() > 500) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message too long (max 500 characters)");
+        }
         if (confessionRepository.existsBySenderAndReceiverRollNumberAndState(
                 sender, receiverRollNumber, ConfessionState.INVITED)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -97,17 +103,13 @@ public class ConfessionService {
         messageRepository.save(systemMsg);
 
         try {
-            messagingTemplate.convertAndSendToUser(
-                confession.getSender().getPublicId().toString(),
-                "/queue/confessions", "MUTUAL"
-            );
-            messagingTemplate.convertAndSendToUser(
-                confession.getReceiver().getPublicId().toString(),
-                "/queue/confessions", "MUTUAL"
-            );
-            messagingTemplate.convertAndSend(
-                "/topic/confession/" + confession.getId(), "MUTUAL"
-            );
+            String senderPub = confession.getSender().getPublicId().toString();
+            String receiverPub = confession.getReceiver().getPublicId().toString();
+            String chatDest = "/queue/confession/" + confession.getId();
+            messagingTemplate.convertAndSendToUser(senderPub, "/queue/confessions", "MUTUAL");
+            messagingTemplate.convertAndSendToUser(receiverPub, "/queue/confessions", "MUTUAL");
+            messagingTemplate.convertAndSendToUser(senderPub, chatDest, "MUTUAL");
+            messagingTemplate.convertAndSendToUser(receiverPub, chatDest, "MUTUAL");
         } catch (Exception e) {
             System.err.println("Failed to send mutual WebSocket notification: " + e.getMessage());
         }
@@ -139,6 +141,14 @@ public class ConfessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Confession is not in invited state");
         }
 
+        if (confession.getLastInviteSentAt() != null &&
+                confession.getLastInviteSentAt().plusSeconds(86400).isAfter(java.time.Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                "Invite already sent. You can resend after 24 hours.");
+        }
+
+        confession.setLastInviteSentAt(java.time.Instant.now());
+        confessionRepository.save(confession);
         emailService.sendInvite(confession.getReceiverRollNumber().toLowerCase() + "@cuchd.in");
     }
 
@@ -174,6 +184,10 @@ public class ConfessionService {
             );
         }
 
+        if (message != null && message.length() > 500) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message too long (max 500 characters)");
+        }
+
         long recentCount = confessionRepository.countBySenderSince(
             sender, Instant.now().minusSeconds(3600)
         );
@@ -203,15 +217,12 @@ public class ConfessionService {
             confession.setReceiverHasUnread(true);
             confessionRepository.save(confession);
             try {
-                messagingTemplate.convertAndSendToUser(
-                    receiver.getPublicId().toString(),
-                    "/queue/confessions",
-                    "NEW_MESSAGE"
-                );
-                messagingTemplate.convertAndSend(
-                    "/topic/confession/" + confession.getId(),
-                    "NEW_MESSAGE"
-                );
+                String receiverPub = receiver.getPublicId().toString();
+                String senderPub = sender.getPublicId().toString();
+                String chatDest = "/queue/confession/" + confession.getId();
+                messagingTemplate.convertAndSendToUser(receiverPub, "/queue/confessions", "NEW_MESSAGE");
+                messagingTemplate.convertAndSendToUser(receiverPub, chatDest, "NEW_MESSAGE");
+                messagingTemplate.convertAndSendToUser(senderPub, chatDest, "NEW_MESSAGE");
             } catch (Exception e) {
                 System.err.println("Failed to send WebSocket notification: " + e.getMessage());
             }
@@ -247,25 +258,26 @@ public class ConfessionService {
         }
     }
     @Transactional
-public void replyToConfession(Long confessionId, User receiver) {
+    public void replyToConfession(Long confessionId, User receiver) {
 
-    Confession confession = confessionRepository.findById(confessionId)
-            .orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND)
+        Confession confession = confessionRepository.findById(confessionId)
+                .orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND)
+                );
+
+        if (!confession.getReceiver().getId().equals(receiver.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        if (confession.getState() != ConfessionState.CREATED) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Cannot reply now"
             );
+        }
 
-    if (!confession.getReceiver().getId().equals(receiver.getId())) {
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        confession.setState(ConfessionState.UNLOCKED);
+        confessionRepository.save(confession);
     }
-
-    if (confession.getState() != ConfessionState.CREATED) {
-        throw new ResponseStatusException(
-            HttpStatus.BAD_REQUEST, "Cannot reply now"
-        );
-    }
-
-    confession.setState(ConfessionState.UNLOCKED);
-}
 @Transactional
 
     public void blockConfession(Long confessionId, User user) {
@@ -433,19 +445,13 @@ public void markAsRead(Long confessionId, User user) {
         messageRepository.save(systemArgs);
 
         // 5. Notify Socket
-         try {
-            // Notify Receiver
-            messagingTemplate.convertAndSendToUser(
-                confession.getReceiver().getPublicId().toString(),
-                "/queue/confessions",
-                "REVEALED"
-            );
-            
-            // Notify Chat Topic
-            messagingTemplate.convertAndSend(
-                "/topic/confession/" + confession.getId(),
-                "REVEALED"
-            );
+        try {
+            String senderPub = sender.getPublicId().toString();
+            String receiverPub = confession.getReceiver().getPublicId().toString();
+            String chatDest = "/queue/confession/" + confession.getId();
+            messagingTemplate.convertAndSendToUser(receiverPub, "/queue/confessions", "REVEALED");
+            messagingTemplate.convertAndSendToUser(receiverPub, chatDest, "REVEALED");
+            messagingTemplate.convertAndSendToUser(senderPub, chatDest, "REVEALED");
         } catch (Exception e) {
             System.err.println("Failed to send WebSocket notification: " + e.getMessage());
         }

@@ -31,6 +31,13 @@ public class MessageService {
     @Transactional
     public Message sendMessage(Long confessionId, User sender, String content) {
 
+        if (content == null || content.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be empty");
+        }
+        if (content.length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message too long (max 1000 characters)");
+        }
+
         Confession confession = confessionRepository.findById(confessionId)
                 .orElseThrow(() ->
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Confession not found")
@@ -64,18 +71,12 @@ public class MessageService {
 
         // 2. Notify Receiver (Real-time update)
         try {
-            // Notify Dashboard (to update dot) and Chat (to show message)
-            messagingTemplate.convertAndSendToUser(
-                notificationTarget.getPublicId().toString(),
-                "/queue/confessions", 
-                "NEW_MESSAGE"
-            );
-            
-            // Also notify the specific chat topic (if open)
-            messagingTemplate.convertAndSend(
-                "/topic/confession/" + confession.getId(),
-                "NEW_MESSAGE"
-            );
+            String notifPub = notificationTarget.getPublicId().toString();
+            String senderPub = sender.getPublicId().toString();
+            String chatDest = "/queue/confession/" + confession.getId();
+            messagingTemplate.convertAndSendToUser(notifPub, "/queue/confessions", "NEW_MESSAGE");
+            messagingTemplate.convertAndSendToUser(notifPub, chatDest, "NEW_MESSAGE");
+            messagingTemplate.convertAndSendToUser(senderPub, chatDest, "UPDATE");
         } catch (Exception e) {
             System.err.println("Failed to send WebSocket notification: " + e.getMessage());
         }

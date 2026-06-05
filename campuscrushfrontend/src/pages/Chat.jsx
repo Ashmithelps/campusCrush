@@ -79,7 +79,8 @@ const Chat = () => {
         const token = localStorage.getItem('token');
         if (token) {
             socketService.connect(token);
-            socketService.subscribe(`/topic/confession/${confessionId}`, (event) => {
+            socketService.subscribe(`/user/queue/confession/${confessionId}`, (frame) => {
+                const event = frame?.body;
                 if (event === 'MUTUAL') {
                     setShowMutual(true);
                 }

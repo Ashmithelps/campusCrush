@@ -4,7 +4,6 @@ import java.security.Principal;
 
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
@@ -20,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 public class ChatSocketController {
 
     private final MessageService messageService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/confession/{confessionId}/send")
     public void sendMessage(
@@ -31,13 +29,7 @@ public class ChatSocketController {
         CampusUserDetails userDetails = (CampusUserDetails) ((Authentication) principal).getPrincipal();
         User sender = userDetails.getUser();
 
-        com.example.campuscrush.entity.message.Message savedMessage = 
-            messageService.sendMessage(confessionId, sender, request.getContent());
-
-        if (savedMessage != null) {
-            // Broadcast a simple signal. Frontend will refetch messages via REST API.
-            // sending Entity causes LazyInitializationException due to Jackson serialization of proxies.
-            messagingTemplate.convertAndSend("/topic/confession/" + confessionId, "UPDATE");
-        }
+        // MessageService handles all notifications (targeted user queues, no public topic)
+        messageService.sendMessage(confessionId, sender, request.getContent());
     }
 }

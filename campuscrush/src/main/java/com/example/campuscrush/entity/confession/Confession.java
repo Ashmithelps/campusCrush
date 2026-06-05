@@ -72,4 +72,6 @@ public class Confession {
 
     @Builder.Default
     private Boolean mutualSeenByReceiver = true;
+
+    private java.time.Instant lastInviteSentAt;
 }

@@ -25,10 +25,13 @@ public class AuthController {
     private final AuthService authService;
     private final ConfessionService confessionService;
 
+    private static final java.util.regex.Pattern CUCHD_EMAIL =
+        java.util.regex.Pattern.compile("^[a-zA-Z0-9]{4,20}@cuchd\\.in$");
+
     @PostMapping("/register")
     public String register(@RequestParam String email) {
         String normalizedEmail = email.toLowerCase().trim();
-        if (!normalizedEmail.endsWith("@cuchd.in")) {
+        if (!CUCHD_EMAIL.matcher(normalizedEmail).matches()) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST, "Only @cuchd.in emails are allowed"
             );
@@ -61,6 +64,11 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@RequestParam String email) {
         String normalizedEmail = email.toLowerCase().trim();
+        if (!CUCHD_EMAIL.matcher(normalizedEmail).matches()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Only @cuchd.in emails are allowed"
+            );
+        }
         User user = userRepository.findByCollegeEmail(normalizedEmail)
                 .orElseThrow(() -> new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "No account found for this email. Please register first."));

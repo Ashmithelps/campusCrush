@@ -26,11 +26,20 @@ public class ConfessionController {
     private final ConfessionService confessionService;
     private final UserRepository userRepository;
 
+    private static final java.util.regex.Pattern ROLL_OR_UUID =
+        java.util.regex.Pattern.compile(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" +
+            "|^[A-Za-z0-9]{4,20}$"
+        );
+
     @PostMapping("/{receiverId}")
     public java.util.Map<String, String> sendConfession(
             @PathVariable String receiverId,
             @RequestBody String message
     ) {
+        if (!ROLL_OR_UUID.matcher(receiverId).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid recipient identifier");
+        }
         User sender = SecurityUtils.currentUser();
         User receiver = null;
 

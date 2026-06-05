@@ -60,6 +60,14 @@ public class User {
     @Column(columnDefinition = "boolean default false")
     private Boolean verified = false;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private int otpAttempts = 0;
+
+    private java.time.Instant otpLockedUntil;
+
+    private java.time.Instant lastOtpSentAt;
+
     @PrePersist
     public void prePersist() {
         this.publicId = UUID.randomUUID();

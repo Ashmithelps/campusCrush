@@ -33,7 +33,6 @@ public class EmailService {
             System.out.println("✅ OTP sent to " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send OTP: " + e.getMessage());
-            logToConsole(to, otp);
         }
     }
 
@@ -116,10 +115,4 @@ public class EmailService {
         return new HttpEntity<>(body, headers);
     }
 
-    private void logToConsole(String to, String otp) {
-        System.out.println("\n============ MAIL FALLBACK ============");
-        System.out.println("To:  " + to);
-        System.out.println("OTP: " + otp);
-        System.out.println("=======================================\n");
-    }
 }
