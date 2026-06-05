@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Verify from './pages/Verify';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Splash from './pages/Splash';
@@ -52,6 +53,10 @@ function App() {
             <ProtectedRoute>
               <Chat />
             </ProtectedRoute>
+          } />
+
+          <Route path="/verify" element={
+            <PublicRoute><Verify /></PublicRoute>
           } />
 
           <Route path="/auth" element={
