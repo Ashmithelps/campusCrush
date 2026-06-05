@@ -4,11 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { apiError } from '../services/api';
 import Logo from '../components/Logo';
-
-// Matches the backend's validation: ^[a-zA-Z0-9]{4,20}@cuchd\.in$
-const CUCHD_RE = /^[a-zA-Z0-9]{4,20}@cuchd\.in$/i;
-
-const isValidEmail = (v) => CUCHD_RE.test(v.toLowerCase().trim());
+import { isValidEmail } from '../utils/auth';
 
 // Atmosphere layers — shared between both steps of this page
 const Atmosphere = () => (

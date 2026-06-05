@@ -861,6 +861,16 @@ body {
 .rg-link button:hover { color: rgba(239, 231, 218, 0.82); }
 .rg-link button:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ── Login entrance — faster than register (~60% of register delays) ── */
+
+.rg-body--login .rg-copy,
+.rg-body--login .rg-form,
+.rg-body--login .rg-link { animation-duration: 0.50s; }
+
+.rg-body--login .rg-copy { animation-delay: 0.10s; }
+.rg-body--login .rg-form { animation-delay: 0.16s; }
+.rg-body--login .rg-link { animation-delay: 0.28s; }
+
 /* ── OTP step ── */
 
 .rg-otp-content {
