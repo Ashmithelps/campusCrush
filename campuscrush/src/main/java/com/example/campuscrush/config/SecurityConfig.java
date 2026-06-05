@@ -46,6 +46,7 @@ public class SecurityConfig {
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
         configuration.setAllowedOriginPatterns(java.util.List.of(
+            "https://campusfrontend*.vercel.app",
             "https://campuscrush*.vercel.app",
             "http://localhost:*"
         ));
