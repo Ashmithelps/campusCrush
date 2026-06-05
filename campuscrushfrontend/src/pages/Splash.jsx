@@ -2,9 +2,31 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
-const UnsaidLogo = ({ size = 72 }) => (
+const UnsaidLogo = ({ size = 88 }) => (
     <svg width={size} height={size} viewBox="0 0 72 72" fill="none" aria-hidden="true">
-        <circle cx="36" cy="36" r="31" stroke="#C75D3F" strokeWidth="1.2" />
+        {/*
+          Circle draws clockwise from 12-o'clock.
+          Circumference of r=31: 2π×31 ≈ 195
+          rotate(-90 36 36) moves the start point from 3-o'clock to 12-o'clock.
+        */}
+        <circle
+            cx="36" cy="36" r="31"
+            stroke="#C75D3F"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            fill="none"
+            className="logo-circle"
+            transform="rotate(-90 36 36)"
+        />
+
+        {/* Travelling dot — rides the leading edge of the stroke */}
+        <circle
+            cx="36" cy="5"
+            r="2.2"
+            fill="#C75D3F"
+            className="logo-dot"
+        />
+
         <text
             x="36"
             y="51"
@@ -14,6 +36,7 @@ const UnsaidLogo = ({ size = 72 }) => (
             fontStyle="italic"
             fontWeight="600"
             fill="#C75D3F"
+            className="logo-letter"
         >
             U
         </text>
@@ -39,7 +62,7 @@ const Splash = () => {
             <div className={`splash-body${show ? ' splash-body--in' : ''}`}>
 
                 <div className="splash-mark">
-                    <UnsaidLogo size={72} />
+                    <UnsaidLogo size={88} />
                 </div>
 
                 <h1 className="splash-title">Unsaid</h1>

@@ -121,11 +121,7 @@ body {
 
 .splash-mark {
   margin-bottom: 28px;
-  opacity: 0;
-  transform: scale(0.82);
-  transition:
-    opacity  0.8s var(--ease)   0.0s,
-    transform 0.8s var(--spring) 0.0s;
+  /* No entrance transition — the SVG draws itself */
 }
 
 .splash-title {
@@ -146,7 +142,7 @@ body {
 
 .splash-hook {
   font-size: 0.88rem;
-  color: rgba(244, 239, 230, 0.38);
+  color: rgba(244, 239, 230, 0.5);
   line-height: 1.85;
   margin-bottom: 52px;
   font-weight: 400;
@@ -166,11 +162,51 @@ body {
     transform 0.6s var(--spring) 0.72s;
 }
 
-/* Triggered all at once when .splash-body--in is added */
-.splash-body--in .splash-mark    { opacity: 1; transform: scale(1); }
+/* Triggered when .splash-body--in is added */
 .splash-body--in .splash-title   { opacity: 1; transform: translateY(0); }
 .splash-body--in .splash-hook    { opacity: 1; }
 .splash-body--in .splash-actions { opacity: 1; transform: translateY(0); }
+
+/* ── Logo draw animation ── */
+
+/* Circle strokes itself: dashoffset 195 → 0 (full circumference of r=31) */
+.logo-circle {
+  stroke-dasharray: 195;
+  stroke-dashoffset: 195;
+  animation: logoCircleDraw 1.5s cubic-bezier(0.37, 0, 0.63, 1) 0.12s forwards;
+}
+
+/* Dot rides the leading edge, then fades as the circle completes */
+.logo-dot {
+  transform-origin: 36px 36px;
+  animation: logoDotRide 1.5s cubic-bezier(0.37, 0, 0.63, 1) 0.12s forwards,
+             logoDotFade 0.35s ease 1.4s forwards;
+}
+
+/* Letter materialises after the circle finishes */
+.logo-letter {
+  opacity: 0;
+  animation: logoLetterIn 0.65s ease 1.3s forwards;
+}
+
+@keyframes logoCircleDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Dot orbits the same arc as the circle: rotate from 0° to 360° */
+@keyframes logoDotRide {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes logoDotFade {
+  to { opacity: 0; }
+}
+
+@keyframes logoLetterIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 /* ── Buttons ── */
 .splash-btn-primary {
