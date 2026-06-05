@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────
-   CampusCrush  ·  Warm Editorial Design System
+   Unsaid  ·  Warm Editorial Design System
    Inspired by Hinge / Feeld — serif + restraint
 ───────────────────────────────────────────────────── */
 
@@ -39,6 +39,17 @@
 
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease:   cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Splash entrance timing — injected live by Splash.jsx; fallbacks here */
+  --splash-ease:  cubic-bezier(0.16, 1, 0.3, 1);
+  --splash-dot1:  0.20s;
+  --splash-dot2:  0.40s;
+  --splash-dot3:  0.60s;
+  --splash-word:  0.82s;
+  --splash-hook1: 1.16s;
+  --splash-hook2: 1.38s;
+  --splash-btn:   1.54s;
+  --splash-ghost: 1.74s;
 
   color-scheme: light;
 }
@@ -97,153 +108,283 @@ body {
 
 /* ─────────────────────────────────────────────────────
    SPLASH  ·  Opening cinematic — always dark
+   Timing: tune DELAYS in src/pages/Splash.jsx
 ───────────────────────────────────────────────────── */
 
 .splash-page {
   position: relative;
-  height: 100%;
   height: 100dvh;
-  background: #1C1814;
+  background: #15110E;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 40px 32px;
+  align-items: flex-start;
+  padding: 0 32px;
   overflow: hidden;
 }
 
-.splash-body {
-  text-align: center;
-  max-width: 320px;
-  width: 100%;
+/* ── Atmosphere ── */
+
+.splash-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(ellipse 55% 48% at 50% 42%, #2C1A12 0%, transparent 68%);
+  pointer-events: none;
+  will-change: transform;
+  animation: glowDrift 18s ease-in-out infinite;
 }
 
-/* ── Per-element entrance ── */
+.splash-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 28%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.splash-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.042;
+  z-index: 2;
+}
+
+/* ── Content body ── */
+
+.splash-body {
+  position: relative;
+  z-index: 3;
+  max-width: 360px;
+  width: 100%;
+  padding-top: 18dvh;
+  padding-bottom: 8dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ── Logo mark (three dots) ── */
 
 .splash-mark {
-  margin-bottom: 28px;
-  /* No entrance transition — the SVG draws itself */
+  margin-bottom: 30px;
+  will-change: transform;
 }
+
+.logo-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+.logo-dot-1 {
+  animation: dotIn 0.5s var(--splash-ease) var(--splash-dot1) both;
+}
+.logo-dot-2 {
+  animation: dotIn 0.5s var(--splash-ease) var(--splash-dot2) both;
+}
+.logo-dot-3 {
+  animation:
+    dotIn    0.5s var(--splash-ease) var(--splash-dot3) both,
+    dotPulse 4.2s ease-in-out        calc(var(--splash-dot3) + 0.62s) infinite;
+}
+
+/* ── Wordmark ── */
 
 .splash-title {
-  font-family: var(--font-serif);
-  font-size: clamp(3.4rem, 14vw, 4.4rem);
+  font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  font-optical-sizing: auto;
+  font-size: clamp(4.2rem, 18vw, 6rem);
   font-weight: 600;
   font-style: italic;
-  color: #F4EFE6;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin-bottom: 22px;
+  color: #EFE7DA;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  margin-bottom: 26px;
   opacity: 0;
-  transform: translateY(22px);
+  transform: translateY(16px);
+  filter: blur(8px);
+  will-change: transform, opacity, filter;
   transition:
-    opacity   0.75s var(--ease)   0.18s,
-    transform 0.75s var(--spring) 0.18s;
+    opacity   0.75s var(--splash-ease) var(--splash-word),
+    transform 0.75s var(--splash-ease) var(--splash-word),
+    filter    0.75s var(--splash-ease) var(--splash-word);
 }
 
+/* ── Tagline ── */
+
 .splash-hook {
-  font-size: 0.88rem;
-  color: rgba(244, 239, 230, 0.5);
-  line-height: 1.85;
-  margin-bottom: 52px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-  opacity: 0;
-  transition: opacity 0.7s var(--ease) 0.48s;
+  margin-bottom: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
+
+.splash-hook-1,
+.splash-hook-2 {
+  display: block;
+  font-size: 0.85rem;
+  color: rgba(239, 231, 218, 0.50);
+  line-height: 1.95;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity   0.65s var(--splash-ease),
+    transform 0.65s var(--splash-ease);
+}
+
+.splash-hook-1 {
+  transition-delay: var(--splash-hook1);
+}
+.splash-hook-2 {
+  transition-delay: var(--splash-hook2);
+}
+
+/* ── Actions ── */
 
 .splash-actions {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  opacity: 0;
-  transform: translateY(14px);
-  transition:
-    opacity   0.6s var(--ease)   0.72s,
-    transform 0.6s var(--spring) 0.72s;
+  gap: 18px;
+  width: 100%;
+  max-width: 300px;
 }
 
-/* Triggered when .splash-body--in is added */
-.splash-body--in .splash-title   { opacity: 1; transform: translateY(0); }
-.splash-body--in .splash-hook    { opacity: 1; }
-.splash-body--in .splash-actions { opacity: 1; transform: translateY(0); }
+/* ── BEGIN button ── */
 
-/* ── Logo draw animation ── */
-
-/* Circle strokes itself: dashoffset 195 → 0 (full circumference of r=31) */
-.logo-circle {
-  stroke-dasharray: 195;
-  stroke-dashoffset: 195;
-  animation: logoCircleDraw 1.5s cubic-bezier(0.37, 0, 0.63, 1) 0.12s forwards;
-}
-
-/* Dot rides the leading edge, then fades as the circle completes */
-.logo-dot {
-  transform-origin: 36px 36px;
-  animation: logoDotRide 1.5s cubic-bezier(0.37, 0, 0.63, 1) 0.12s forwards,
-             logoDotFade 0.35s ease 1.4s forwards;
-}
-
-/* Letter materialises after the circle finishes */
-.logo-letter {
-  opacity: 0;
-  animation: logoLetterIn 0.65s ease 1.3s forwards;
-}
-
-@keyframes logoCircleDraw {
-  to { stroke-dashoffset: 0; }
-}
-
-/* Dot orbits the same arc as the circle: rotate from 0° to 360° */
-@keyframes logoDotRide {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes logoDotFade {
-  to { opacity: 0; }
-}
-
-@keyframes logoLetterIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* ── Buttons ── */
 .splash-btn-primary {
   width: 100%;
-  padding: 15px;
+  padding: 16px 24px;
   border-radius: 100px;
-  background: #C75D3F;
-  color: #FDFAF5;
+  background: #C25C3D;
+  color: #EFE7DA;
   font-family: var(--font);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s var(--spring), filter 0.15s;
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity    0.55s var(--splash-ease) var(--splash-btn),
+    transform  0.55s var(--spring)      var(--splash-btn),
+    background 0.22s ease,
+    box-shadow 0.25s ease,
+    translate  0.2s  var(--spring);
   -webkit-tap-highlight-color: transparent;
 }
 
-.splash-btn-primary:active  { transform: scale(0.95); }
-.splash-btn-primary:hover:not(:active) { filter: brightness(1.08); }
+/* ── Ghost / sign-in link ── */
 
 .splash-btn-ghost {
+  position: relative;
   background: none;
   border: none;
-  color: rgba(244, 239, 230, 0.32);
+  color: rgba(239, 231, 218, 0.32);
   font-family: var(--font);
   font-size: 0.8rem;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.025em;
   cursor: pointer;
-  padding: 8px;
-  transition: color 0.2s;
+  padding: 6px 0 8px;
+  opacity: 0;
+  align-self: flex-start;
+  transition:
+    opacity 0.5s var(--splash-ease) var(--splash-ghost),
+    color   0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.splash-btn-ghost:hover { color: rgba(244, 239, 230, 0.65); }
+.splash-btn-ghost::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  height: 1px;
+  width: 0;
+  background: rgba(239, 231, 218, 0.35);
+  transition: width 0.32s var(--splash-ease);
+}
+
+/* ── .splash-body--in triggers all entrances ── */
+
+.splash-body--in .splash-title  { opacity: 1; transform: translateY(0); filter: blur(0); }
+.splash-body--in .splash-hook-1 { opacity: 1; transform: translateY(0); }
+.splash-body--in .splash-hook-2 { opacity: 1; transform: translateY(0); }
+.splash-body--in .splash-btn-primary {
+  opacity: 1;
+  transform: scale(1);
+  animation: breathe 8s ease-in-out calc(var(--splash-btn) + 0.65s) infinite;
+}
+.splash-body--in .splash-btn-ghost { opacity: 1; }
+
+/* ── Hover / press interactions ── */
+
+.splash-btn-primary:hover:not(:active) {
+  background: #D26A48;
+  translate: 0 -2px;
+  box-shadow:
+    0  8px 28px rgba(194, 92, 61, 0.38),
+    0  2px  8px rgba(194, 92, 61, 0.22);
+}
+.splash-body--in .splash-btn-primary:hover { animation-play-state: paused; }
+.splash-btn-primary:active { transform: scale(0.97); }
+.splash-btn-ghost:hover    { color: rgba(239, 231, 218, 0.60); }
+.splash-btn-ghost:hover::after { width: 100%; }
+
+/* ── Keyframes ── */
+
+@keyframes dotIn {
+  0%   { opacity: 0; transform: scale(0);    }
+  65%  {             transform: scale(1.22); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%       { opacity: 0.80; transform: scale(1.12); }
+}
+
+@keyframes glowDrift {
+  0%,  100% { transform: translate(  0%,   0%) scale(1.00); }
+  33%        { transform: translate( -4%,  2.5%) scale(1.07); }
+  66%        { transform: translate(  3%, -2.0%) scale(0.95); }
+}
+
+@keyframes breathe {
+  0%,  100% { box-shadow: 0 0  0   0px rgba(194, 92, 61, 0.00); }
+  50%        { box-shadow: 0 0 22px 3px  rgba(194, 92, 61, 0.26); }
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-dot,
+  .logo-dot-3 {
+    animation: dotInFast 0.15s ease both;
+  }
+  .splash-glow { animation: none; }
+  .splash-body--in .splash-btn-primary { animation: none; }
+  .splash-title,
+  .splash-hook-1,
+  .splash-hook-2,
+  .splash-btn-primary,
+  .splash-btn-ghost {
+    transition-duration: 0.15s !important;
+    transition-delay:    0s    !important;
+    filter: none !important;
+  }
+}
+
+@keyframes dotInFast {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 /* ─────────────────────────────────────────────────────
    AUTH  ·  Editorial, stripped-back
@@ -488,24 +629,24 @@ body {
   position: absolute;
   top: 20px;
   right: 24px;
+  z-index: 10;
   background: none;
-  border: 1.5px solid rgba(244,239,230,0.2);
-  color: rgba(244,239,230,0.45);
-  font-size: 0.68rem;
+  border: 1px solid rgba(239,231,218,0.16);
+  color: rgba(239,231,218,0.38);
+  font-size: 0.65rem;
   font-weight: 600;
   font-family: var(--font);
-  letter-spacing: 0.09em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
-  padding: 5px 11px;
+  padding: 5px 12px;
   border-radius: 100px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.18s, border-color 0.18s;
   -webkit-tap-highlight-color: transparent;
-  z-index: 10;
 }
 .splash-theme-toggle:hover {
-  color: rgba(244,239,230,0.8);
-  border-color: rgba(244,239,230,0.4);
+  color: rgba(239,231,218,0.72);
+  border-color: rgba(239,231,218,0.32);
 }
 
 /* ── Misc text ── */
