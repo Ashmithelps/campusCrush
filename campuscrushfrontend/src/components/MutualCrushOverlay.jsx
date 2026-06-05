@@ -37,14 +37,14 @@ const MutualCrushOverlay = ({ onDone }) => {
             animationDuration: `${h.duration}s`,
           }}
         >
-          💕
+          ♥
         </span>
       ))}
 
       {/* Centre content */}
       <div className={`mutual-content${showText ? ' mutual-content--visible' : ''}`}>
-        <div className="mutual-emoji">💕</div>
-        <h1 className="mutual-title">It's mutual</h1>
+        <span className="mutual-emoji">♥</span>
+        <h1 className="mutual-title">It's mutual.</h1>
         <p className="mutual-sub">You both had feelings for each other all along.</p>
 
         {showBtn && (

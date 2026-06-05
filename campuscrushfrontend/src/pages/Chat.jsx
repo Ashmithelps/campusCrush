@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import HeartLoader from '../components/HeartLoader';
 import MutualCrushOverlay from '../components/MutualCrushOverlay';
 
 const AVATAR_COLORS = [
-    '#FF2D55', '#FF6B00', '#FFB800', '#1DB954',
-    '#00C7BE', '#0A84FF', '#5E5CE6', '#BF5AF2',
-    '#FF375F', '#30B0C7',
+    '#C75D3F', '#B5600F', '#5B8A5A', '#5B7FA3',
+    '#7A6B9A', '#C47080', '#8A8A5A', '#A0624A',
+    '#5A7A8A', '#4A7A7A',
 ];
 function avatarColor(alias = '') {
     let h = 0;
@@ -22,6 +23,7 @@ const Chat = () => {
     const { confessionId } = useParams();
     const navigate         = useNavigate();
     const { user }         = useAuth();
+    const { theme, toggleTheme } = useTheme();
 
     const [messages, setMessages]           = useState([]);
     const [confession, setConfession]       = useState(null);
@@ -226,6 +228,10 @@ const Chat = () => {
                 {stateBadge && (
                     <span className={`badge ${stateBadge.cls}`}>{stateBadge.label}</span>
                 )}
+
+                <button className="btn-theme" onClick={toggleTheme} style={{ marginLeft: 2 }}>
+                    {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
 
                 {/* ⋮ menu */}
                 {(isActive || isPending) && !loading && (

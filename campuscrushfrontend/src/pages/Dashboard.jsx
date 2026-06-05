@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import HeartLoader from '../components/HeartLoader';
 import MutualCrushOverlay from '../components/MutualCrushOverlay';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import api, { apiError } from '../services/api';
 import socket from '../services/socket';
 import { useNavigate } from 'react-router-dom';
@@ -15,9 +16,9 @@ const STATE_BADGE = {
 };
 
 const AVATAR_COLORS = [
-    '#FF2D55', '#FF6B00', '#FFB800', '#1DB954',
-    '#00C7BE', '#0A84FF', '#5E5CE6', '#BF5AF2',
-    '#FF375F', '#30B0C7',
+    '#C75D3F', '#B5600F', '#5B8A5A', '#5B7FA3',
+    '#7A6B9A', '#C47080', '#8A8A5A', '#A0624A',
+    '#5A7A8A', '#4A7A7A',
 ];
 
 function avatarColor(alias = '') {
@@ -40,6 +41,7 @@ function timeAgo(dateStr) {
 
 const Dashboard = () => {
     const { logout, user }   = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [confessions, setConfessions] = useState([]);
     const [loading, setLoading]         = useState(true);
     const [fetchError, setFetchError]   = useState(false);
@@ -146,9 +148,12 @@ const Dashboard = () => {
                     <div className="dash-header-logo">campuscrush</div>
                     <div className="dash-header-alias">{user?.displayAlias ?? ''}</div>
                 </div>
-                <button className="btn-ghost" onClick={logout}>
-                    Sign out
-                </button>
+                <div className="dash-header-right">
+                    <button className="btn-theme" onClick={toggleTheme}>
+                        {theme === 'dark' ? 'Light' : 'Dark'}
+                    </button>
+                    <button className="btn-ghost" onClick={logout}>Out</button>
+                </div>
             </header>
 
             {/* Section label */}

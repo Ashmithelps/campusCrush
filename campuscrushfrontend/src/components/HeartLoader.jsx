@@ -21,11 +21,11 @@ const HeartLoader = ({ size = 90 }) => (
             C90 58 50 85 50 85Z" />
         </clipPath>
 
-        {/* Wave gradient — pink to magenta */}
+        {/* Wave gradient — terracotta to sand */}
         <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#ff2d55" />
-          <stop offset="50%"  stopColor="#ff6b9d" />
-          <stop offset="100%" stopColor="#bf5af2" />
+          <stop offset="0%"   stopColor="#C75D3F" />
+          <stop offset="50%"  stopColor="#D4704E" />
+          <stop offset="100%" stopColor="#DFD3C0" />
         </linearGradient>
 
         {/* Shimmer on top of liquid */}
@@ -65,7 +65,7 @@ const HeartLoader = ({ size = 90 }) => (
           C78 8 90 18 90 33
           C90 58 50 85 50 85Z"
         fill="none"
-        stroke="rgba(255,45,85,0.6)"
+        stroke="rgba(199,93,63,0.5)"
         strokeWidth="2"
       />
     </svg>
