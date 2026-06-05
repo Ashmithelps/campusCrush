@@ -130,7 +130,7 @@ const Register = () => {
     return (
         <div className="auth-page">
             <div className="auth-top">
-                <div className="auth-logo">campuscrush</div>
+                <div className="auth-logo">unsaid</div>
                 <div className="auth-heading">Join anonymously.</div>
                 <div className="auth-sub">
                     Send confessions. Stay hidden. Reveal when you're ready.

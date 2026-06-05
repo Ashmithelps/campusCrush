@@ -58,8 +58,8 @@ const Dashboard = () => {
 
     useEffect(() => {
         const unread = confessions.filter(c => c.hasUnread).length;
-        document.title = unread > 0 ? `(${unread}) CampusCrush` : 'CampusCrush';
-        return () => { document.title = 'CampusCrush'; };
+        document.title = unread > 0 ? `(${unread}) Unsaid` : 'Unsaid';
+        return () => { document.title = 'Unsaid'; };
     }, [confessions]);
 
     const fetchConfessions = async () => {
@@ -145,7 +145,7 @@ const Dashboard = () => {
             {/* Header */}
             <header className="dash-header">
                 <div className="dash-header-left">
-                    <div className="dash-header-logo">campuscrush</div>
+                    <div className="dash-header-logo">unsaid</div>
                     <div className="dash-header-alias">{user?.displayAlias ?? ''}</div>
                 </div>
                 <div className="dash-header-right">

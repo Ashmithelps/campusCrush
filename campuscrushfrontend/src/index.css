@@ -96,6 +96,119 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────
+   SPLASH  ·  Opening cinematic — always dark
+───────────────────────────────────────────────────── */
+
+.splash-page {
+  height: 100%;
+  height: 100dvh;
+  background: #1C1814;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  overflow: hidden;
+}
+
+.splash-body {
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+}
+
+/* ── Per-element entrance ── */
+
+.splash-mark {
+  margin-bottom: 28px;
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity  0.8s var(--ease)   0.0s,
+    transform 0.8s var(--spring) 0.0s;
+}
+
+.splash-title {
+  font-family: var(--font-serif);
+  font-size: clamp(3.4rem, 14vw, 4.4rem);
+  font-weight: 600;
+  font-style: italic;
+  color: #F4EFE6;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 22px;
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity   0.75s var(--ease)   0.18s,
+    transform 0.75s var(--spring) 0.18s;
+}
+
+.splash-hook {
+  font-size: 0.88rem;
+  color: rgba(244, 239, 230, 0.38);
+  line-height: 1.85;
+  margin-bottom: 52px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transition: opacity 0.7s var(--ease) 0.48s;
+}
+
+.splash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity   0.6s var(--ease)   0.72s,
+    transform 0.6s var(--spring) 0.72s;
+}
+
+/* Triggered all at once when .splash-body--in is added */
+.splash-body--in .splash-mark    { opacity: 1; transform: scale(1); }
+.splash-body--in .splash-title   { opacity: 1; transform: translateY(0); }
+.splash-body--in .splash-hook    { opacity: 1; }
+.splash-body--in .splash-actions { opacity: 1; transform: translateY(0); }
+
+/* ── Buttons ── */
+.splash-btn-primary {
+  width: 100%;
+  padding: 15px;
+  border-radius: 100px;
+  background: #C75D3F;
+  color: #FDFAF5;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s var(--spring), filter 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.splash-btn-primary:active  { transform: scale(0.95); }
+.splash-btn-primary:hover:not(:active) { filter: brightness(1.08); }
+
+.splash-btn-ghost {
+  background: none;
+  border: none;
+  color: rgba(244, 239, 230, 0.32);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.splash-btn-ghost:hover { color: rgba(244, 239, 230, 0.65); }
+
+/* ─────────────────────────────────────────────────────
    AUTH  ·  Editorial, stripped-back
 ───────────────────────────────────────────────────── */
 

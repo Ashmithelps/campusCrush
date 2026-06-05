@@ -70,7 +70,7 @@ const HeartLoader = ({ size = 90 }) => (
       />
     </svg>
 
-    <div className="heart-loader-text">campuscrush</div>
+    <div className="heart-loader-text">unsaid</div>
   </div>
 );
 

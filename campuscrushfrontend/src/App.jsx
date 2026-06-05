@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
+import Splash from './pages/Splash';
 import HeartLoader from './components/HeartLoader';
 
 const ProtectedRoute = ({ children }) => {
@@ -52,7 +53,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={
+            <PublicRoute><Splash /></PublicRoute>
+          } />
         </Routes>
       </AuthProvider>
     </Router>

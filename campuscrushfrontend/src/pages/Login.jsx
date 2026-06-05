@@ -130,7 +130,7 @@ const Login = () => {
     return (
         <div className="auth-page">
             <div className="auth-top">
-                <div className="auth-logo">campuscrush</div>
+                <div className="auth-logo">unsaid</div>
                 <div className="auth-heading">Welcome back.</div>
                 <div className="auth-sub">Your campus, your secrets. Sign in anonymously.</div>
 
