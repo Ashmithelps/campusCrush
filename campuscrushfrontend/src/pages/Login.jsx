@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiError } from '../services/api';
 
@@ -10,6 +11,7 @@ const Login = () => {
     const [error, setError]         = useState('');
     const [loading, setLoading]     = useState(false);
     const { login, verifyOtp }      = useAuth();
+    const { theme, toggleTheme }    = useTheme();
     const navigate                  = useNavigate();
     const otpRefs                   = useRef([]);
 
@@ -76,6 +78,9 @@ const Login = () => {
     if (step === 2) {
         return (
             <div className="auth-page">
+                <button className="auth-theme-toggle" onClick={toggleTheme}>
+                    {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
                 <div className="auth-top">
                     <button
                         className="btn-ghost"
@@ -129,6 +134,9 @@ const Login = () => {
 
     return (
         <div className="auth-page">
+            <button className="auth-theme-toggle" onClick={toggleTheme}>
+                {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
             <div className="auth-top">
                 <div className="auth-logo">unsaid</div>
                 <div className="auth-heading">Welcome back.</div>

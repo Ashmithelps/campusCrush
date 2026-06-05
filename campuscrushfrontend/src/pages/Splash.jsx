@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 const UnsaidLogo = ({ size = 72 }) => (
     <svg width={size} height={size} viewBox="0 0 72 72" fill="none" aria-hidden="true">
@@ -21,6 +22,7 @@ const UnsaidLogo = ({ size = 72 }) => (
 
 const Splash = () => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -30,6 +32,10 @@ const Splash = () => {
 
     return (
         <div className="splash-page">
+            <button className="splash-theme-toggle" onClick={toggleTheme}>
+                {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
+
             <div className={`splash-body${show ? ' splash-body--in' : ''}`}>
 
                 <div className="splash-mark">
