@@ -623,6 +623,342 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────
+   REGISTER  ·  Dark entry screen  (passwordless / OTP)
+   Tune entrance delays via animation-delay values below.
+───────────────────────────────────────────────────── */
+
+/* Page base */
+.rg-page {
+  position: relative;
+  height: 100dvh;
+  background: #15110E;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 32px;
+  overflow: hidden;
+}
+
+/* Content column */
+.rg-body {
+  position: relative;
+  z-index: 3;
+  max-width: 360px;
+  width: 100%;
+  padding-top: 12dvh;
+  padding-bottom: 8dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Logo mark — springs in from scale(1.28), same "arriving" feel as auth-choice */
+.rg-mark {
+  margin-bottom: 26px;
+  animation: rgMarkIn 0.65s var(--spring) 0.06s both;
+}
+
+/* Copy heading */
+.rg-copy {
+  font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  font-optical-sizing: auto;
+  font-size: clamp(2.2rem, 10vw, 3.2rem);
+  font-weight: 600;
+  font-style: italic;
+  color: rgba(239, 231, 218, 0.92);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 30px;
+  animation: fadeRise 0.65s var(--splash-ease) 0.18s both;
+}
+
+/* Form block */
+.rg-form {
+  width: 100%;
+  animation: fadeRise 0.65s var(--splash-ease) 0.30s both;
+}
+
+/* ── Floating-label input ── */
+
+.rg-field {
+  position: relative;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.rg-field input {
+  width: 100%;
+  height: 58px;
+  padding: 22px 42px 8px 16px; /* right pad for icon */
+  background: rgba(30, 24, 19, 0.85);
+  border: 1px solid rgba(239, 231, 218, 0.11);
+  border-radius: 10px;
+  color: #EFE7DA;
+  font-size: 16px;  /* ≥16px — prevents iOS auto-zoom */
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+  caret-color: #C25C3D;
+}
+
+/* Placeholder transparent — the label IS the placeholder */
+.rg-field input::placeholder { color: transparent; }
+
+/* Floating label */
+.rg-field label {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: rgba(154, 143, 130, 0.60);
+  font-size: 1rem;
+  font-family: var(--font);
+  pointer-events: none;
+  transition:
+    top            0.2s ease,
+    transform      0.2s ease,
+    font-size      0.2s ease,
+    color          0.2s ease,
+    letter-spacing 0.2s ease;
+}
+
+/* Float on focus or value present */
+.rg-field input:focus + label,
+.rg-field input:not(:placeholder-shown) + label {
+  top: 12px;
+  transform: translateY(0);
+  font-size: 0.60rem;
+  color: rgba(239, 231, 218, 0.38);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+/* Focus ring */
+.rg-field input:focus {
+  border-color: rgba(194, 92, 61, 0.55);
+  box-shadow: 0 0 0 3px rgba(194, 92, 61, 0.09);
+}
+
+/* Valid — warm gold accent, not jarring green */
+.rg-field--valid input {
+  border-color: rgba(156, 122, 46, 0.45);
+}
+.rg-field--valid input:focus {
+  border-color: rgba(194, 92, 61, 0.55);
+  box-shadow: 0 0 0 3px rgba(194, 92, 61, 0.09);
+}
+
+/* Error */
+.rg-field--error input {
+  border-color: rgba(176, 58, 46, 0.55);
+  box-shadow: 0 0 0 3px rgba(176, 58, 46, 0.07);
+}
+
+/* ✓ icon inside input */
+.rg-field-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+.rg-field-ok {
+  color: rgba(156, 122, 46, 0.85);
+  animation: iconPop 0.28s var(--spring) both;
+}
+
+/* Validation error text — reserves no extra space (uses margin not min-height) */
+.rg-field-err {
+  font-size: 0.74rem;
+  color: rgba(210, 80, 60, 0.80);
+  margin: 6px 0 0 2px;
+  line-height: 1.4;
+}
+
+/* API / server error */
+.rg-error {
+  font-size: 0.78rem;
+  color: rgba(210, 80, 60, 0.80);
+  margin: 10px 0 0;
+  line-height: 1.4;
+}
+
+/* Microcopy */
+.rg-micro {
+  font-size: 0.65rem;
+  color: rgba(239, 231, 218, 0.20);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-family: var(--font);
+  margin: 10px 0 22px;
+}
+
+/* Primary CTA */
+.rg-btn-primary {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: 100px;
+  background: #C25C3D;
+  color: #EFE7DA;
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition:
+    background  0.22s ease,
+    box-shadow  0.25s ease,
+    translate   0.2s  var(--spring),
+    opacity     0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rg-btn-primary:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.rg-btn-primary:not(:disabled):hover:not(:active) {
+  background: #D26A48;
+  translate: 0 -2px;
+  box-shadow: 0 8px 28px rgba(194,92,61,0.36), 0 2px 8px rgba(194,92,61,0.20);
+}
+
+.rg-btn-primary:not(:disabled):active { transform: scale(0.97); }
+
+.rg-btn-primary:focus-visible {
+  outline: 2px solid rgba(194, 92, 61, 0.8);
+  outline-offset: 3px;
+}
+
+/* Secondary link */
+.rg-link {
+  margin-top: 20px;
+  font-size: 0.80rem;
+  color: rgba(239, 231, 218, 0.28);
+  animation: fadeIn 0.5s ease 0.56s both;
+}
+
+.rg-link button {
+  background: none;
+  border: none;
+  color: rgba(239, 231, 218, 0.52);
+  font-family: var(--font);
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.18s;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(239, 231, 218, 0.18);
+}
+
+.rg-link button:hover { color: rgba(239, 231, 218, 0.82); }
+.rg-link button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── OTP step ── */
+
+.rg-otp-content {
+  width: 100%;
+  animation: fadeRise 0.5s var(--splash-ease) 0.08s both;
+}
+
+.rg-otp-heading {
+  font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  font-optical-sizing: auto;
+  font-size: clamp(1.9rem, 9vw, 2.8rem);
+  font-weight: 600;
+  font-style: italic;
+  color: rgba(239, 231, 218, 0.92);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+.rg-otp-sub {
+  font-size: 0.86rem;
+  color: rgba(239, 231, 218, 0.42);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+.rg-otp-email {
+  color: rgba(239, 231, 218, 0.75);
+  font-weight: 500;
+}
+
+.rg-otp-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.rg-otp-box {
+  flex: 1;
+  min-width: 0;
+  height: 58px;
+  background: rgba(30, 24, 19, 0.85);
+  border: 1px solid rgba(239, 231, 218, 0.11);
+  border-radius: 10px;
+  color: #EFE7DA;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  caret-color: #C25C3D;
+  font-family: var(--font);
+  transition: border-color 0.18s ease, transform 0.15s var(--spring), box-shadow 0.18s ease;
+  -webkit-appearance: none;
+}
+
+.rg-otp-box:focus {
+  border-color: rgba(194, 92, 61, 0.60);
+  box-shadow: 0 0 0 3px rgba(194, 92, 61, 0.09);
+  transform: scale(1.06);
+}
+
+/* ── Register-specific keyframes ── */
+
+@keyframes rgMarkIn {
+  from { opacity: 0; transform: scale(1.28); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes iconPop {
+  from { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .rg-mark,
+  .rg-copy,
+  .rg-form,
+  .rg-link,
+  .rg-otp-content {
+    animation-duration: 0.15s !important;
+    animation-delay:    0s    !important;
+  }
+  .rg-field-ok { animation: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────
    AUTH  ·  Editorial, stripped-back
 ───────────────────────────────────────────────────── */
 

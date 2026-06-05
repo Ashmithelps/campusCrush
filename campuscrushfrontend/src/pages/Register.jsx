@@ -1,29 +1,67 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useNavigate, Link } from 'react-router-dom';
 import { apiError } from '../services/api';
+import Logo from '../components/Logo';
+
+// Matches the backend's validation: ^[a-zA-Z0-9]{4,20}@cuchd\.in$
+const CUCHD_RE = /^[a-zA-Z0-9]{4,20}@cuchd\.in$/i;
+
+const isValidEmail = (v) => CUCHD_RE.test(v.toLowerCase().trim());
+
+// Atmosphere layers — shared between both steps of this page
+const Atmosphere = () => (
+    <>
+        <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <filter id="rg-noise">
+                <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
+                <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#rg-noise)" />
+        </svg>
+        <div className="splash-glow" aria-hidden="true" />
+        <div className="splash-vignette" aria-hidden="true" />
+    </>
+);
 
 const Register = () => {
-    const [email, setEmail]         = useState('');
-    const [step, setStep]           = useState(1);
-    const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
-    const [error, setError]         = useState('');
-    const [loading, setLoading]     = useState(false);
-    const { register, verifyOtp }   = useAuth();
-    const { theme, toggleTheme }    = useTheme();
-    const navigate                  = useNavigate();
-    const otpRefs                   = useRef([]);
+    const navigate = useNavigate();
+    const { register, verifyOtp } = useAuth();
+    const { theme, toggleTheme } = useTheme();
+
+    const [email, setEmail]           = useState('');
+    const [emailStatus, setEmailStatus] = useState('idle'); // 'idle' | 'valid' | 'error'
+    const [step, setStep]             = useState(1);
+    const [otpDigits, setOtpDigits]   = useState(['', '', '', '', '', '']);
+    const [error, setError]           = useState('');
+    const [loading, setLoading]       = useState(false);
+    const otpRefs = useRef([]);
 
     const otp = otpDigits.join('');
 
-    const handleEmailSubmit = async (e) => {
-        e.preventDefault();
+    // ── Email validation ──────────────────────────────────
+
+    const handleEmailChange = (e) => {
+        const val = e.target.value;
+        setEmail(val);
         setError('');
-        if (!email.toLowerCase().trim().endsWith('@cuchd.in')) {
-            setError('Only @cuchd.in emails are allowed.');
-            return;
+        if (isValidEmail(val)) {
+            setEmailStatus('valid');
+        } else {
+            // Keep showing error live only if user already blurred; otherwise wait
+            setEmailStatus(prev => prev === 'error' && val.trim() ? 'error' : 'idle');
         }
+    };
+
+    const handleEmailBlur = () => {
+        if (email.trim()) setEmailStatus(isValidEmail(email) ? 'valid' : 'error');
+    };
+
+    // ── OTP send ──────────────────────────────────────────
+
+    const sendOtp = async () => {
+        setError('');
         setLoading(true);
         try {
             await register(email.toLowerCase().trim());
@@ -35,8 +73,16 @@ const Register = () => {
         }
     };
 
-    const handleOtpSubmit = async (e) => {
+    const handleEmailSubmit = (e) => {
         e.preventDefault();
+        if (!isValidEmail(email)) { setEmailStatus('error'); return; }
+        sendOtp();
+    };
+
+    // ── OTP verify ────────────────────────────────────────
+
+    const handleOtpSubmit = async (e) => {
+        e?.preventDefault();
         if (otp.length < 6) { setError('Enter the 6-digit code.'); return; }
         setError('');
         setLoading(true);
@@ -75,101 +121,177 @@ const Register = () => {
         e.preventDefault();
     };
 
+    // ── Step 2 — OTP entry ────────────────────────────────
+
     if (step === 2) {
         return (
-            <div className="auth-page">
-                <button className="auth-theme-toggle" onClick={toggleTheme}>
+            <div className="rg-page">
+                <Atmosphere />
+
+                <button
+                    className="ac-back ac-back--in"
+                    onClick={() => { setStep(1); setOtpDigits(['','','','','','']); setError(''); }}
+                    aria-label="Back to email"
+                >
+                    ←
+                </button>
+
+                <button
+                    className="splash-theme-toggle"
+                    onClick={toggleTheme}
+                    aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                >
                     {theme === 'dark' ? 'Light' : 'Dark'}
                 </button>
-                <div className="auth-top">
-                    <button
-                        className="btn-ghost"
-                        style={{ alignSelf: 'flex-start', paddingLeft: 0, marginBottom: 32 }}
-                        onClick={() => { setStep(1); setOtpDigits(['','','','','','']); setError(''); }}
-                    >
-                        ← Back
-                    </button>
-                    <div className="auth-heading" style={{ fontSize: '2rem' }}>Check your inbox</div>
-                    <div className="auth-sub">
-                        We sent a 6-digit code to{' '}
-                        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{email}</span>
+
+                <div className="rg-body">
+                    {/* Logo persists — no re-entrance, dot-3 still breathes */}
+                    <div className="rg-mark">
+                        <Logo size={36} settled />
                     </div>
 
-                    <div className="otp-row" onPaste={handleOtpPaste}>
-                        {otpDigits.map((digit, i) => (
-                            <input
-                                key={i}
-                                ref={el => otpRefs.current[i] = el}
-                                className="otp-box"
-                                type="text"
-                                inputMode="numeric"
-                                maxLength={1}
-                                value={digit}
-                                autoFocus={i === 0}
-                                onChange={e => handleOtpChange(i, e.target.value)}
-                                onKeyDown={e => handleOtpKeyDown(i, e)}
-                            />
-                        ))}
+                    {/* OTP content fades in as a new element */}
+                    <div className="rg-otp-content">
+                        <p className="rg-otp-heading">Check your inbox</p>
+                        <p className="rg-otp-sub">
+                            Code sent to{' '}
+                            <span className="rg-otp-email">{email}</span>
+                        </p>
+
+                        <div
+                            className="rg-otp-row"
+                            onPaste={handleOtpPaste}
+                            role="group"
+                            aria-label="6-digit verification code"
+                        >
+                            {otpDigits.map((digit, i) => (
+                                <input
+                                    key={i}
+                                    ref={el => otpRefs.current[i] = el}
+                                    className="rg-otp-box"
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    value={digit}
+                                    autoFocus={i === 0}
+                                    onChange={e => handleOtpChange(i, e.target.value)}
+                                    onKeyDown={e => handleOtpKeyDown(i, e)}
+                                    aria-label={`Digit ${i + 1}`}
+                                />
+                            ))}
+                        </div>
+
+                        {error && <p className="rg-error" role="alert">{error}</p>}
+
+                        <button
+                            className="rg-btn-primary"
+                            onClick={handleOtpSubmit}
+                            disabled={loading || otp.length < 6}
+                        >
+                            {loading ? 'Verifying…' : 'Verify & Join'}
+                        </button>
+
+                        <p className="rg-link">
+                            Didn't get it?{' '}
+                            <button type="button" onClick={sendOtp} disabled={loading}>
+                                Resend code
+                            </button>
+                        </p>
                     </div>
-
-                    {error && <p className="error-text" style={{ marginTop: 14, textAlign: 'center' }}>{error}</p>}
-                </div>
-
-                <div className="auth-bottom">
-                    <button
-                        className="btn-full btn-accent"
-                        onClick={handleOtpSubmit}
-                        disabled={loading || otp.length < 6}
-                    >
-                        {loading ? 'Verifying...' : 'Verify & Join'}
-                    </button>
-                    <p className="link-text">
-                        Didn't get it?{' '}
-                        <button onClick={handleEmailSubmit} disabled={loading}>Resend code</button>
-                    </p>
                 </div>
             </div>
         );
     }
 
+    // ── Step 1 — Email entry ──────────────────────────────
+
+    const fieldClass = [
+        'rg-field',
+        emailStatus === 'valid' ? 'rg-field--valid' : '',
+        emailStatus === 'error' ? 'rg-field--error' : '',
+    ].filter(Boolean).join(' ');
+
     return (
-        <div className="auth-page">
-            <button className="auth-theme-toggle" onClick={toggleTheme}>
+        <div className="rg-page">
+            <Atmosphere />
+
+            <button
+                className="ac-back ac-back--in"
+                onClick={() => navigate('/auth')}
+                aria-label="Back to sign-in options"
+            >
+                ←
+            </button>
+
+            <button
+                className="splash-theme-toggle"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
                 {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
-            <div className="auth-top">
-                <div className="auth-logo">unsaid</div>
-                <div className="auth-heading">Join anonymously.</div>
-                <div className="auth-sub">
-                    Send confessions. Stay hidden. Reveal when you're ready.
+
+            <div className="rg-body">
+                <div className="rg-mark">
+                    <Logo size={36} settled />
                 </div>
 
-                <div className="field">
-                    <label>College Email</label>
-                    <input
-                        className="field-input"
-                        type="email"
-                        placeholder="you@cuchd.in"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        autoFocus
-                        onKeyDown={e => e.key === 'Enter' && handleEmailSubmit(e)}
-                    />
-                </div>
+                <p className="rg-copy">
+                    You're nearly<br />in.
+                </p>
 
-                {error && <p className="error-text">{error}</p>}
-            </div>
+                <form className="rg-form" onSubmit={handleEmailSubmit} noValidate>
+                    <div className={fieldClass}>
+                        <input
+                            id="rg-email"
+                            type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            placeholder=" "
+                            value={email}
+                            onChange={handleEmailChange}
+                            onBlur={handleEmailBlur}
+                            aria-describedby={
+                                emailStatus === 'error' ? 'rg-email-err' : 'rg-micro'
+                            }
+                            aria-invalid={emailStatus === 'error' ? 'true' : undefined}
+                            autoFocus
+                        />
+                        <label htmlFor="rg-email">College email</label>
 
-            <div className="auth-bottom">
-                <button
-                    className="btn-full btn-accent"
-                    onClick={handleEmailSubmit}
-                    disabled={loading || !email}
-                >
-                    {loading ? 'Sending code...' : 'Get Started'}
-                </button>
-                <p className="link-text">
-                    Already have an account? <Link to="/login">Sign in</Link>
+                        {emailStatus === 'valid' && (
+                            <span className="rg-field-icon rg-field-ok" aria-hidden="true">
+                                ✓
+                            </span>
+                        )}
+                    </div>
+
+                    {emailStatus === 'error' && (
+                        <p className="rg-field-err" id="rg-email-err" role="alert">
+                            Only @cuchd.in emails are accepted
+                        </p>
+                    )}
+
+                    {error && <p className="rg-error" role="alert">{error}</p>}
+
+                    <p className="rg-micro" id="rg-micro">
+                        Students only · @cuchd.in
+                    </p>
+
+                    <button
+                        className="rg-btn-primary"
+                        type="submit"
+                        disabled={loading || emailStatus !== 'valid'}
+                    >
+                        {loading ? 'Sending code…' : 'Continue'}
+                    </button>
+                </form>
+
+                <p className="rg-link">
+                    Already registered?{' '}
+                    <button type="button" onClick={() => navigate('/login')}>
+                        Log in
+                    </button>
                 </p>
             </div>
         </div>
