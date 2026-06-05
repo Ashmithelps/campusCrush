@@ -35,4 +35,7 @@ public interface ConfessionRepository
     List<Confession> findByReceiverRollNumberAndState(String receiverRollNumber, ConfessionState state);
 
     boolean existsBySenderAndReceiverRollNumberAndState(User sender, String receiverRollNumber, ConfessionState state);
+
+    @Query("SELECT MAX(c.lastInviteSentAt) FROM Confession c WHERE c.receiverRollNumber = :rollNumber AND c.lastInviteSentAt IS NOT NULL")
+    java.util.Optional<java.time.Instant> findLatestInviteSentAtForRollNumber(@Param("rollNumber") String rollNumber);
 }

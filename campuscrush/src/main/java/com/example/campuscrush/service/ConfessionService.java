@@ -141,13 +141,25 @@ public class ConfessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Confession is not in invited state");
         }
 
+        java.time.Instant now = java.time.Instant.now();
+
+        // Per-sender cooldown: 7 days
         if (confession.getLastInviteSentAt() != null &&
-                confession.getLastInviteSentAt().plusSeconds(7 * 24 * 3600L).isAfter(java.time.Instant.now())) {
+                confession.getLastInviteSentAt().plusSeconds(7 * 24 * 3600L).isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                 "Invite already sent. You can resend after 7 days.");
         }
 
-        confession.setLastInviteSentAt(java.time.Instant.now());
+        // Global receiver cooldown: only one invite email per receiver every 3 days, regardless of who sends it
+        confessionRepository.findLatestInviteSentAtForRollNumber(confession.getReceiverRollNumber())
+            .ifPresent(lastSent -> {
+                if (lastSent.plusSeconds(3 * 24 * 3600L).isAfter(now)) {
+                    throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                        "This person was recently invited. Please wait a few days before sending another invite.");
+                }
+            });
+
+        confession.setLastInviteSentAt(now);
         confessionRepository.save(confession);
         emailService.sendInvite(confession.getReceiverRollNumber().toLowerCase() + "@cuchd.in");
     }
