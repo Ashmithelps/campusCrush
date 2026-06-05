@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import Logo from '../components/Logo';
 
 // ─── Animation config ─────────────────────────────────────────────
 // Tune these values to adjust the entrance choreography.
@@ -18,25 +19,11 @@ const DELAYS = {
 };
 // ─────────────────────────────────────────────────────────────────
 
-// Animated ellipsis logo — three terracotta dots
-const Logo = () => (
-  <svg
-    width="48" height="12"
-    viewBox="0 0 48 12"
-    fill="none"
-    role="img"
-    aria-label="Unsaid"
-  >
-    <circle className="logo-dot logo-dot-1" cx="6"  cy="6" r="4" fill="#C25C3D" />
-    <circle className="logo-dot logo-dot-2" cx="24" cy="6" r="4" fill="#C25C3D" />
-    <circle className="logo-dot logo-dot-3" cx="42" cy="6" r="4" fill="#C25C3D" />
-  </svg>
-);
-
 const Splash = () => {
     const navigate  = useNavigate();
     const { theme, toggleTheme } = useTheme();
-    const [show, setShow] = useState(false);
+    const [show, setShow]       = useState(false);
+    const [exiting, setExiting] = useState(false);
     const markRef = useRef(null);
     const wordRef = useRef(null);
 
@@ -57,11 +44,8 @@ const Splash = () => {
         return () => clearTimeout(t);
     }, []);
 
-    // Cursor parallax
-    // – logo mark drifts up to ±8px, wordmark up to ±5px toward the cursor
-    // – lerp-damped (factor 0.06) for a floating, unhurried feel
-    // – disabled on touch screens and prefers-reduced-motion
-    // – activates only after all entrance animations have settled (2.4s)
+    // Cursor parallax — logo ≤8px, wordmark ≤5px; lerp-damped
+    // Disabled on touch + prefers-reduced-motion; activates after entrance (2.4s)
     useEffect(() => {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         if ('ontouchstart' in window) return;
@@ -79,12 +63,10 @@ const Splash = () => {
         const tick = () => {
             cx += (tx - cx) * 0.06;
             cy += (ty - cy) * 0.06;
-            const mx = cx.toFixed(2),  my = cy.toFixed(2);
-            const wx = (cx * 0.6).toFixed(2), wy = (cy * 0.6).toFixed(2);
             if (markRef.current)
-                markRef.current.style.transform = `translate(${mx}px,${my}px)`;
+                markRef.current.style.transform = `translate(${cx.toFixed(2)}px,${cy.toFixed(2)}px)`;
             if (wordRef.current)
-                wordRef.current.style.transform = `translate(${wx}px,${wy}px)`;
+                wordRef.current.style.transform = `translate(${(cx*0.6).toFixed(2)}px,${(cy*0.6).toFixed(2)}px)`;
             rafId = requestAnimationFrame(tick);
         };
 
@@ -100,30 +82,32 @@ const Splash = () => {
         };
     }, []);
 
+    // Exit: fade out, then navigate
+    const handleBegin = () => {
+        setExiting(true);
+        setTimeout(() => navigate('/auth'), 340);
+    };
+
+    const bodyClass = [
+        'splash-body',
+        show    ? 'splash-body--in'  : '',
+        exiting ? 'splash-body--out' : '',
+    ].filter(Boolean).join(' ');
+
     return (
         <div className="splash-page">
 
-            {/* SVG film-grain texture */}
             <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
                 <filter id="splash-noise">
-                    <feTurbulence
-                        type="fractalNoise"
-                        baseFrequency="0.68"
-                        numOctaves="3"
-                        stitchTiles="stitch"
-                    />
+                    <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
                     <feColorMatrix type="saturate" values="0" />
                 </filter>
                 <rect width="100%" height="100%" filter="url(#splash-noise)" />
             </svg>
 
-            {/* Warm ambient glow — drifts on an 18s loop */}
             <div className="splash-glow" aria-hidden="true" />
-
-            {/* Edge vignette */}
             <div className="splash-vignette" aria-hidden="true" />
 
-            {/* Theme toggle */}
             <button
                 className="splash-theme-toggle"
                 onClick={toggleTheme}
@@ -132,39 +116,26 @@ const Splash = () => {
                 {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
 
-            <div className={`splash-body${show ? ' splash-body--in' : ''}`}>
+            <div className={bodyClass}>
 
-                {/* Logo mark */}
                 <div className="splash-mark" ref={markRef}>
-                    <Logo />
+                    <Logo size={48} />
                 </div>
 
-                {/* Wordmark — wrapper isolates parallax from CSS transitions */}
                 <div ref={wordRef} style={{ willChange: 'transform' }}>
                     <h1 className="splash-title">Unsaid</h1>
                 </div>
 
-                {/* Tagline — two lines enter independently */}
-                <p
-                    className="splash-hook"
-                    aria-label="You had the feeling. We gave it somewhere to go."
-                >
+                <p className="splash-hook" aria-label="You had the feeling. We gave it somewhere to go.">
                     <span className="splash-hook-1">You had the feeling.</span>
                     <span className="splash-hook-2">We gave it somewhere to go.</span>
                 </p>
 
-                {/* CTAs */}
                 <div className="splash-actions">
-                    <button
-                        className="splash-btn-primary"
-                        onClick={() => navigate('/register')}
-                    >
+                    <button className="splash-btn-primary" onClick={handleBegin}>
                         Begin
                     </button>
-                    <button
-                        className="splash-btn-ghost"
-                        onClick={() => navigate('/login')}
-                    >
+                    <button className="splash-btn-ghost" onClick={() => navigate('/login')}>
                         I have an account
                     </button>
                 </div>

@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Splash from './pages/Splash';
+import AuthChoice from './pages/AuthChoice';
 import HeartLoader from './components/HeartLoader';
 
 const ProtectedRoute = ({ children }) => {
@@ -51,6 +52,10 @@ function App() {
             <ProtectedRoute>
               <Chat />
             </ProtectedRoute>
+          } />
+
+          <Route path="/auth" element={
+            <PublicRoute><AuthChoice /></PublicRoute>
           } />
 
           <Route path="/" element={
