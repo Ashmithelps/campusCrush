@@ -1917,6 +1917,108 @@ button, a, [role="button"] {
   filter: brightness(1.07);
 }
 
+.fab--breathe {
+  animation: breathe 8s ease-in-out 2s infinite;
+}
+
+/* ── Dashboard additions ── */
+
+/* Safe-area header padding */
+.dash-header {
+  padding-top: max(24px, calc(env(safe-area-inset-top) + 16px));
+}
+
+/* Logout icon button — tighter than text "Sign out" */
+.dash-logout {
+  font-size: 1rem;
+  padding: 6px 8px;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.dash-logout:hover { background: var(--surface-2); }
+
+/* Section gap — add breathing room before a section header that follows a row */
+.conf-card + .dash-section-label {
+  margin-top: 10px;
+}
+
+/* Row entrance stagger */
+.conf-card {
+  animation: fadeRise 0.45s var(--splash-ease) calc(var(--ri, 0) * 55ms) both;
+}
+
+/* Preview line — uses text-2 so it clears WCAG AA at small size */
+.conf-card-preview {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  opacity: 0.72;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* Empty state — brand version */
+.dash-empty--brand .dash-empty-title {
+  font-size: 1.55rem;
+  line-height: 1.25;
+  color: var(--text-2);
+}
+
+.dash-empty-logo {
+  opacity: 0.28;
+  margin-bottom: 14px;
+}
+
+/* Skeleton rows */
+.skel-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  animation: fadeRise 0.4s var(--splash-ease) calc(var(--ri, 0) * 60ms) both;
+}
+
+.skel-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skel-lines {
+  flex: 1;
+  min-width: 0;
+}
+
+.skel-line {
+  height: 11px;
+  border-radius: 6px;
+}
+
+@keyframes skelShimmer {
+  0%   { opacity: 0.10; }
+  50%  { opacity: 0.22; }
+  100% { opacity: 0.10; }
+}
+
+.skel-pulse {
+  background: var(--text-3);
+  animation: skelShimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conf-card { animation: none; }
+  .skel-row  { animation: none; }
+  .fab--breathe { animation: none; }
+}
+
 /* ── Bottom sheet ── */
 .sheet-overlay {
   position: fixed;
@@ -2201,7 +2303,298 @@ button, a, [role="button"] {
   opacity: 0.8;
 }
 
-/* Confirm overlay */
+/* ── Chat screen additions ── */
+
+/* Header safe-area */
+.chat-header {
+  padding-top: max(12px, calc(env(safe-area-inset-top) + 6px));
+}
+
+/* Header avatar */
+.chat-header-avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: #FDFAF5;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Header subtitle (status) */
+.chat-header-sub {
+  font-size: 0.62rem;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-top: 1px;
+  font-weight: 500;
+}
+
+/* ⋮ menu button */
+.chat-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  width: 40px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-menu-btn:hover { color: var(--text); }
+.chat-menu-btn:active { opacity: 0.5; }
+
+/* Error state centering */
+.chat-error-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 24px;
+}
+.chat-error-copy {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Loading skeleton inside chat */
+.chat-loading {
+  flex: 1;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Date divider */
+.chat-date-divider {
+  text-align: center;
+  margin: 14px 0 6px;
+  position: relative;
+}
+.chat-date-divider span {
+  font-size: 0.6rem;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg);
+  padding: 0 10px;
+  position: relative;
+  z-index: 1;
+}
+.chat-date-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Group gap — breathing room before a new sender group */
+.chat-group-gap {
+  height: 8px;
+}
+
+/* Bubble: mid of group — remove asymmetric tail */
+.chat-bubble.self.chat-bubble--mid  { border-bottom-right-radius: 18px; }
+.chat-bubble.other.chat-bubble--mid { border-bottom-left-radius: 18px; }
+
+/* Icebreaker confession card */
+.chat-icebreaker-wrap {
+  margin: 20px 20px 16px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  text-align: center;
+  animation: fadeRise 0.55s var(--splash-ease) 0.1s both;
+}
+.chat-icebreaker-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+.chat-icebreaker {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 10px;
+  quotes: none;
+}
+.chat-icebreaker-time {
+  font-size: 0.6rem;
+  color: var(--text-3);
+}
+
+/* System pills: MUTUAL and REVEAL */
+.chat-system-pill--mutual {
+  background: rgba(199, 93, 63, 0.12);
+  color: var(--accent);
+  border-color: rgba(199, 93, 63, 0.22);
+  animation: fadeRise 0.65s var(--splash-ease) both;
+}
+
+.chat-system-pill--reveal {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border-color: rgba(156, 122, 46, 0.22);
+  animation: fadeRise 0.65s var(--splash-ease) both, breathe 6s ease-in-out 0.8s 3;
+}
+
+/* Scroll-to-bottom pill */
+.chat-scroll-btn {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom) + 76px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font);
+  letter-spacing: 0.05em;
+  padding: 7px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  z-index: 5;
+  white-space: nowrap;
+  animation: fadeRise 0.25s var(--splash-ease) both;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-scroll-btn:active { transform: translateX(-50%) scale(0.94); }
+
+/* Invited state action bar */
+.chat-invited-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.chat-state-banner--waiting {
+  text-align: center;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-3);
+  margin-bottom: 0;
+  padding: 10px 0;
+}
+.chat-blocked-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ⋮ sheet items */
+.chat-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-sheet-item:last-child { border-bottom: none; }
+.chat-sheet-item:active { opacity: 0.6; }
+
+.chat-sheet-item--gold { color: var(--gold); }
+.chat-sheet-item--danger { color: var(--danger); }
+
+.chat-sheet-icon {
+  font-size: 1rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Confirm sheet typography */
+.chat-confirm-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+  padding: 0 4px;
+}
+.chat-confirm-body {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+.chat-confirm-btns {
+  display: flex;
+  gap: 10px;
+}
+
+/* btn-accent in action context */
+.chat-action-btn.btn-accent {
+  background: var(--accent);
+  color: #FDFAF5;
+  border: none;
+}
+.chat-action-btn.btn-danger-ghost {
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+}
+
+/* Typing indicator */
+.chat-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 12px 16px;
+}
+.chat-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: vfDotPulse 1.2s ease-in-out infinite;
+}
+.chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-icebreaker-wrap { animation: none; }
+  .chat-system-pill--mutual,
+  .chat-system-pill--reveal { animation: none; }
+  .chat-scroll-btn { animation: none; }
+  .chat-typing span { animation: none; opacity: 0.5; }
+}
+
+/* Confirm overlay — keep old class for backwards compat */
 .confirm-overlay {
   background: var(--surface);
   border: 1px solid var(--border-2);

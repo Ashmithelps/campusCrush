@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import HeartLoader from '../components/HeartLoader';
 import MutualCrushOverlay from '../components/MutualCrushOverlay';
+import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { apiError } from '../services/api';
@@ -39,9 +39,118 @@ function timeAgo(dateStr) {
     return `${Math.floor(diff / 86400)}d`;
 }
 
+function formatPreview(c) {
+    return c.icebreakerMessage || null;
+}
+
+function groupConfessions(list) {
+    return {
+        forYou:  list.filter(c => c.state === 'CREATED'  && !c.isSender),
+        convos:  list.filter(c => c.state === 'UNLOCKED' || c.state === 'REVEALED'),
+        waiting: list.filter(c => (c.state === 'CREATED' && c.isSender) || c.state === 'INVITED'),
+        blocked: list.filter(c => c.state === 'BLOCKED'),
+    };
+}
+
+// Builds a flat list of { type:'header'|'row', ... } for unified stagger indexing
+function buildFlatList(confessions) {
+    const { forYou, convos, waiting, blocked } = groupConfessions(confessions);
+    const sections = [
+        { key: 'forYou',  label: 'For you',       items: forYou  },
+        { key: 'convos',  label: 'Conversations',  items: convos  },
+        { key: 'waiting', label: 'Waiting',        items: waiting },
+        { key: 'blocked', label: 'Blocked',        items: blocked },
+    ].filter(s => s.items.length > 0);
+
+    let rowIndex = 0;
+    return sections.flatMap(s => [
+        { type: 'header', label: s.label, key: `hdr-${s.key}` },
+        ...s.items.map(c => ({ type: 'row', c, index: rowIndex++, key: c.id })),
+    ]);
+}
+
+const SkeletonRows = () => (
+    <>
+        {[0, 1, 2, 3].map(i => (
+            <div key={i} className="skel-row" style={{ '--ri': i }}>
+                <div className="skel-avatar skel-pulse" />
+                <div className="skel-lines">
+                    <div className="skel-line skel-pulse" style={{ width: '40%' }} />
+                    <div className="skel-line skel-pulse" style={{ width: '62%', marginTop: 8 }} />
+                </div>
+            </div>
+        ))}
+    </>
+);
+
+const EmptyState = () => (
+    <div className="dash-empty dash-empty--brand">
+        <div className="dash-empty-logo">
+            <Logo size={32} settled />
+        </div>
+        <p className="dash-empty-title">
+            The feeling
+            <br />
+            you haven't sent yet.
+        </p>
+        <p className="dash-empty-sub">
+            Tap Confess — let someone know.
+        </p>
+    </div>
+);
+
+const ConfessionRow = ({ c, index, onClick }) => {
+    const badge   = STATE_BADGE[c.state] ?? { label: c.state, cls: '' };
+    const alias   = c.otherUserAlias ?? '?';
+    const color   = avatarColor(alias);
+    const letter  = avatarLetter(alias);
+    const preview = formatPreview(c);
+
+    const a11yLabel = [
+        alias,
+        badge.label,
+        c.hasUnread ? 'unread' : null,
+        preview ? `— ${preview}` : null,
+    ].filter(Boolean).join(', ');
+
+    return (
+        <div
+            className={`conf-card${c.hasUnread ? ' conf-card--unread' : ''}${c.state === 'INVITED' ? ' conf-card--invited' : ''}`}
+            style={{ '--ri': index }}
+            onClick={onClick}
+            role={c.state !== 'INVITED' ? 'button' : undefined}
+            tabIndex={c.state !== 'INVITED' ? 0 : undefined}
+            aria-label={a11yLabel}
+            onKeyDown={c.state !== 'INVITED' ? (e => (e.key === 'Enter' || e.key === ' ') && onClick(e)) : undefined}
+        >
+            <div
+                className={`conf-avatar${c.hasUnread ? ' conf-avatar-unread' : ''}`}
+                style={{ background: color }}
+            >
+                {letter}
+            </div>
+
+            <div className="conf-card-body">
+                <div className="conf-card-top">
+                    <span className={`conf-card-alias${c.hasUnread ? ' conf-card-alias--unread' : ''}`}>
+                        {alias}
+                    </span>
+                    <div className="conf-card-meta">
+                        <span className={`badge ${badge.cls}`}>{badge.label}</span>
+                        <span className="conf-card-time">{timeAgo(c.createdAt)}</span>
+                    </div>
+                </div>
+                {preview && (
+                    <p className="conf-card-preview">{preview}</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const Dashboard = () => {
-    const { logout, user }   = useAuth();
-    const { theme, toggleTheme } = useTheme();
+    const { logout, user }            = useAuth();
+    const { theme, toggleTheme }      = useTheme();
     const [confessions, setConfessions] = useState([]);
     const [loading, setLoading]         = useState(true);
     const [fetchError, setFetchError]   = useState(false);
@@ -51,7 +160,7 @@ const Dashboard = () => {
     const [mutualConfessionId, setMutualConfessionId] = useState(null);
     const [sending, setSending]           = useState(false);
     const [sendError, setSendError]       = useState('');
-    const [inviteResult, setInviteResult] = useState(null); // { confessionId, email }
+    const [inviteResult, setInviteResult] = useState(null);
     const [inviting, setInviting]         = useState(false);
     const [inviteSent, setInviteSent]     = useState(false);
     const navigate = useNavigate();
@@ -134,90 +243,78 @@ const Dashboard = () => {
             await api.post(`/confessions/${inviteResult.confessionId}/invite`);
             setInviteSent(true);
         } catch {
-            setInviteSent(true); // best-effort
+            setInviteSent(true);
         } finally {
             setInviting(false);
         }
     };
+
+    const flatList = buildFlatList(confessions);
 
     return (
         <div className="dashboard">
             {/* Header */}
             <header className="dash-header">
                 <div className="dash-header-left">
-                    <div className="dash-header-logo">unsaid</div>
-                    <div className="dash-header-alias">{user?.displayAlias ?? ''}</div>
+                    <Logo size={26} settled />
+                    {user?.displayAlias && (
+                        <div className="dash-header-alias">{user.displayAlias}</div>
+                    )}
                 </div>
                 <div className="dash-header-right">
-                    <button className="btn-theme" onClick={toggleTheme}>
+                    <button
+                        className="btn-theme"
+                        onClick={toggleTheme}
+                        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    >
                         {theme === 'dark' ? 'Light' : 'Dark'}
                     </button>
-                    <button className="btn-ghost" onClick={logout}>Out</button>
+                    <button
+                        className="btn-ghost dash-logout"
+                        onClick={logout}
+                        aria-label="Sign out"
+                    >
+                        ↪
+                    </button>
                 </div>
             </header>
-
-            {/* Section label */}
-            {!loading && confessions.length > 0 && (
-                <div className="dash-section-label">Messages</div>
-            )}
 
             {/* List */}
             <div className="dash-list">
                 {loading ? (
-                    <div className="loader" style={{ minHeight: '60dvh' }}>
-                        <HeartLoader size={80} />
-                    </div>
+                    <SkeletonRows />
                 ) : fetchError ? (
                     <div className="dash-empty">
-                        <div className="dash-empty-icon">⚠️</div>
-                        <div className="dash-empty-title">Could not load messages</div>
-                        <div className="dash-empty-sub">Check your connection and try again</div>
-                        <button className="btn-full btn-surface" style={{ marginTop: 16, maxWidth: 200 }} onClick={fetchConfessions}>Retry</button>
+                        <p className="dash-empty-title" style={{ fontSize: '1rem' }}>Could not load</p>
+                        <p className="dash-empty-sub">Check your connection and try again.</p>
+                        <button className="btn-full btn-surface" style={{ marginTop: 20, maxWidth: 180 }} onClick={fetchConfessions}>
+                            Retry
+                        </button>
                     </div>
                 ) : confessions.length === 0 ? (
-                    <div className="dash-empty">
-                        <div className="dash-empty-icon">💌</div>
-                        <div className="dash-empty-title">No confessions yet</div>
-                        <div className="dash-empty-sub">Tap the button below to send your first one</div>
-                    </div>
+                    <EmptyState />
                 ) : (
-                    confessions.map(c => {
-                        const badge  = STATE_BADGE[c.state] ?? { label: c.state, cls: '' };
-                        const alias  = c.otherUserAlias ?? '?';
-                        const color  = avatarColor(alias);
-                        const letter = avatarLetter(alias);
-                        return (
-                            <div
-                                key={c.id}
-                                className={`conf-card${c.hasUnread ? ' conf-card--unread' : ''}${c.state === 'INVITED' ? ' conf-card--invited' : ''}`}
-                                onClick={() => c.state !== 'INVITED' && navigate(`/chat/${c.id}`)}
-                            >
-                                {/* Avatar */}
-                                <div
-                                    className={`conf-avatar${c.hasUnread ? ' conf-avatar-unread' : ''}`}
-                                    style={{ background: color }}
-                                >
-                                    {letter}
-                                </div>
-
-                                {/* Body */}
-                                <div className="conf-card-body">
-                                    <div className="conf-card-top">
-                                        <span className={`conf-card-alias${c.hasUnread ? ' conf-card-alias--unread' : ''}`}>{alias}</span>
-                                        <div className="conf-card-meta">
-                                            <span className={`badge ${badge.cls}`}>{badge.label}</span>
-                                            <span className="conf-card-time">{timeAgo(c.createdAt)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })
+                    flatList.map(item =>
+                        item.type === 'header' ? (
+                            <div key={item.key} className="dash-section-label">{item.label}</div>
+                        ) : (
+                            <ConfessionRow
+                                key={item.key}
+                                c={item.c}
+                                index={item.index}
+                                onClick={() => item.c.state !== 'INVITED' && navigate(`/chat/${item.c.id}`)}
+                            />
+                        )
+                    )
                 )}
             </div>
 
             {/* FAB */}
-            <button className="fab" onClick={() => setSheetOpen(true)} aria-label="New confession">
+            <button
+                className={`fab${confessions.length === 0 && !loading ? ' fab--breathe' : ''}`}
+                onClick={() => setSheetOpen(true)}
+                aria-label="New confession"
+            >
                 <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
                 Confess
             </button>
@@ -272,7 +369,7 @@ const Dashboard = () => {
                                     ✓ Confession saved
                                 </p>
                                 <p className="invite-msg">
-                                    They're out there living life, completely unaware someone has a crush on them. Want to send them an invite to join CampusCrush?
+                                    They're out there living life, completely unaware someone has a crush on them. Want to send them an invite to join Unsaid?
                                 </p>
                                 {inviteSent ? (
                                     <>
@@ -290,7 +387,7 @@ const Dashboard = () => {
                                             onClick={handleSendInvite}
                                             disabled={inviting}
                                         >
-                                            {inviting ? 'Sending...' : `Invite — ${inviteResult.email}`}
+                                            {inviting ? 'Sending…' : `Invite — ${inviteResult.email}`}
                                         </button>
                                         <button className="btn-full btn-surface" onClick={closeSheet}>
                                             Skip
@@ -304,7 +401,7 @@ const Dashboard = () => {
                                 onClick={handleSendConfession}
                                 disabled={sending}
                             >
-                                {sending ? 'Sending...' : 'Send Anonymously'}
+                                {sending ? 'Sending…' : 'Send Anonymously'}
                             </button>
                         )}
                     </div>
