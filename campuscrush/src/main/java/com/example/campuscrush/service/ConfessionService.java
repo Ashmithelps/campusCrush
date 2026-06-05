@@ -53,10 +53,23 @@ public class ConfessionService {
             );
 
         if (reverse.isPresent()) {
-            triggerMutualReveal(reverse.get());
+            Confession confession = reverse.get();
+            triggerMutualReveal(confession);
+
+            // Save sender's message into the chat
+            if (message != null && !message.isBlank()) {
+                com.example.campuscrush.entity.message.Message msg =
+                    com.example.campuscrush.entity.message.Message.builder()
+                        .confession(confession)
+                        .sender(sender)
+                        .content(message)
+                        .build();
+                messageRepository.save(msg);
+            }
+
             return java.util.Map.of(
                 "status", "MUTUAL",
-                "confessionId", reverse.get().getId().toString()
+                "confessionId", confession.getId().toString()
             );
         }
 
