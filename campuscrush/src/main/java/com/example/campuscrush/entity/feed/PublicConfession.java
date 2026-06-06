@@ -50,12 +50,15 @@ public class PublicConfession {
     @Builder.Default
     private PublicConfessionStatus status = PublicConfessionStatus.VISIBLE;
 
+    @Column(nullable = false)
     @Builder.Default
     private int viewCount = 0;
 
+    @Column(nullable = false)
     @Builder.Default
     private int reportCount = 0;
 
+    @Column(nullable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
 }
