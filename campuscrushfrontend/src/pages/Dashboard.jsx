@@ -164,6 +164,7 @@ const Dashboard = () => {
     const [inviteResult, setInviteResult] = useState(null);
     const [inviting, setInviting]         = useState(false);
     const [inviteSent, setInviteSent]     = useState(false);
+    const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -272,7 +273,7 @@ const Dashboard = () => {
                     </button>
                     <button
                         className="btn-ghost dash-logout"
-                        onClick={logout}
+                        onClick={() => setLogoutSheetOpen(true)}
                         aria-label="Sign out"
                     >
                         ↪
@@ -332,6 +333,25 @@ const Dashboard = () => {
             )}
 
             <TabBar active="inbox" />
+
+            {/* Logout Confirmation Sheet */}
+            {logoutSheetOpen && (
+                <div className="sheet-overlay" onClick={() => setLogoutSheetOpen(false)}>
+                    <div className="sheet" onClick={e => e.stopPropagation()}>
+                        <div className="sheet-handle" />
+                        <div className="sheet-title">Sign out?</div>
+                        <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                            You'll need your college email to get back in.
+                        </p>
+                        <button className="btn-full btn-danger" onClick={logout}>
+                            Sign out
+                        </button>
+                        <button className="btn-full btn-surface" style={{ marginTop: 10 }} onClick={() => setLogoutSheetOpen(false)}>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Bottom Sheet */}
             {sheetOpen && (
