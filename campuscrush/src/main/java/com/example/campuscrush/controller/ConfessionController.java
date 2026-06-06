@@ -11,10 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.campuscrush.dto.GuessRequest;
+import com.example.campuscrush.dto.GuessResponse;
+import com.example.campuscrush.dto.RevealStateResponse;
 import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.UserRepository;
 import com.example.campuscrush.security.util.SecurityUtils;
 import com.example.campuscrush.service.ConfessionService;
+import com.example.campuscrush.service.RevealService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class ConfessionController {
 
     private final ConfessionService confessionService;
+    private final RevealService revealService;
     private final UserRepository userRepository;
 
     private static final java.util.regex.Pattern ROLL_OR_UUID =
@@ -107,6 +112,21 @@ public com.example.campuscrush.dto.ConfessionResponse getConfession(@PathVariabl
 public void reveal(@PathVariable Long confessionId) {
     User sender = SecurityUtils.currentUser();
     confessionService.revealIdentity(confessionId, sender);
+    revealService.onManualReveal(confessionId);
+}
+
+@GetMapping("/{confessionId}/reveal-state")
+public RevealStateResponse getRevealState(@PathVariable Long confessionId) {
+    User caller = SecurityUtils.currentUser();
+    return revealService.getRevealState(confessionId, caller);
+}
+
+@PostMapping("/{confessionId}/guess")
+public GuessResponse submitGuess(
+        @PathVariable Long confessionId,
+        @RequestBody GuessRequest req) {
+    User guesser = SecurityUtils.currentUser();
+    return revealService.submitGuess(confessionId, guesser, req);
 }
 
 @PostMapping("/{confessionId}/read")

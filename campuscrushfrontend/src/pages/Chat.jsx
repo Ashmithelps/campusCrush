@@ -53,7 +53,6 @@ function groupMessages(msgs) {
             next.from !== msg.from ||
             Math.abs(new Date(next.sentAt) - new Date(msg.sentAt)) >= 5 * 60 * 1000;
 
-        // Show date divider if this is the first message or date changed from previous
         const showDate = !prev ||
             new Date(msg.sentAt).toDateString() !== new Date(prev.sentAt).toDateString();
 
@@ -79,7 +78,7 @@ const DateDivider = ({ ts }) => (
     </div>
 );
 
-const IcebreakerCard = ({ msg, alias }) => (
+const IcebreakerCard = ({ msg }) => (
     <div className="chat-icebreaker-wrap" role="article" aria-label="Opening confession">
         <p className="chat-icebreaker-label">The note that started this</p>
         <blockquote className="chat-icebreaker">{msg.content}</blockquote>
@@ -128,6 +127,215 @@ const TypingIndicator = () => (
     </div>
 );
 
+// ── Reveal sub-components ──────────────────────────────────────────────────
+
+// Receiver: guess panel with progressive hints + input
+const GuessingPanel = ({ revealState, confessionId, onGuessed, onRefresh }) => {
+    const [input, setInput]       = useState('');
+    const [loading, setLoading]   = useState(false);
+    const [wrong, setWrong]       = useState(false);
+    const [errMsg, setErrMsg]     = useState('');
+
+    const { canGuess, guessesRemaining, hintsUnlocked, hints, locked, status } = revealState;
+
+    const alreadyRevealed = status === 'GUESSED' || status === 'MANUALLY_REVEALED';
+
+    const handleGuess = async (e) => {
+        e.preventDefault();
+        const roll = input.trim().toUpperCase();
+        if (!roll || loading) return;
+        setErrMsg('');
+        setWrong(false);
+        setLoading(true);
+        try {
+            const res = await api.post(`/confessions/${confessionId}/guess`, { rollNumber: roll });
+            const data = res.data;
+            if (data.correct) {
+                onGuessed();
+            } else {
+                setWrong(true);
+                setInput('');
+                onRefresh();
+                setTimeout(() => setWrong(false), 600);
+            }
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.response?.status;
+            if (msg === 429 || err?.response?.status === 429) {
+                setErrMsg('Too many tries. Wait 24 h before trying again.');
+            } else {
+                setErrMsg('Something went wrong. Try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (alreadyRevealed) return null;
+
+    if (!canGuess) {
+        if (locked) {
+            return (
+                <div className="reveal-panel reveal-panel--locked">
+                    <span className="reveal-panel-icon">⏳</span>
+                    <p className="reveal-panel-text">Guessing locked for 24 h</p>
+                </div>
+            );
+        }
+        return null;
+    }
+
+    return (
+        <div className="reveal-panel">
+            <div className="reveal-panel-header">
+                <span className="reveal-panel-title">Who sent this?</span>
+                <span className="reveal-tries">{guessesRemaining} {guessesRemaining === 1 ? 'try' : 'tries'} left</span>
+            </div>
+
+            {hints.length > 0 && (
+                <ul className="reveal-hints-list">
+                    {hints.map((h, i) => (
+                        <li key={i} className="reveal-hint" style={{ '--ri': i }}>
+                            <span className="reveal-hint-dot">✦</span> {h}
+                        </li>
+                    ))}
+                    {hintsUnlocked < 3 && (
+                        <li className="reveal-hint reveal-hint--locked" style={{ '--ri': hints.length }}>
+                            <span className="reveal-hint-dot">·</span> More hints unlock after a wrong guess
+                        </li>
+                    )}
+                </ul>
+            )}
+
+            <form className={`reveal-guess-form${wrong ? ' reveal-guess-form--shake' : ''}`} onSubmit={handleGuess}>
+                <input
+                    className="reveal-guess-input field-input"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="Enter roll number…"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    aria-label="Guess roll number"
+                    maxLength={20}
+                />
+                <button
+                    type="submit"
+                    className="reveal-guess-btn btn-accent"
+                    disabled={!input.trim() || loading}
+                    aria-busy={loading}
+                >
+                    {loading ? '…' : 'Guess'}
+                </button>
+            </form>
+            {errMsg && <p className="reveal-error">{errMsg}</p>}
+        </div>
+    );
+};
+
+// Sender: live feed of guesses + kit status summary
+const LiveGuessFeed = ({ revealState }) => {
+    const { guesses, guessingEnabled, kitComplete } = revealState;
+
+    if (!guessingEnabled) return null;
+
+    return (
+        <div className="reveal-panel reveal-panel--sender">
+            <div className="reveal-panel-header">
+                <span className="reveal-panel-title">Guessing activity</span>
+                {!kitComplete && (
+                    <span className="reveal-kit-badge reveal-kit-badge--incomplete">hints incomplete</span>
+                )}
+            </div>
+            {guesses && guesses.length > 0 ? (
+                <ul className="reveal-feed">
+                    {guesses.map((g, i) => (
+                        <li key={i} className={`reveal-guess-row ${g.correct ? 'reveal-guess-row--correct' : 'reveal-guess-row--wrong'}`}>
+                            <span className="reveal-guess-roll data">{g.guessedRoll}</span>
+                            <span className="reveal-guess-mark">{g.correct ? '✓' : '✗'}</span>
+                            <span className="reveal-guess-time">{formatTime(g.guessedAt)}</span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="reveal-no-guesses">No guesses yet</p>
+            )}
+        </div>
+    );
+};
+
+// Sender: kit setup sheet
+const RevealKitSheet = ({ revealState, onClose, onSaved }) => {
+    const [form, setForm]     = useState({
+        hint1: revealState?.hint1 ?? '',
+        hint2: revealState?.hint2 ?? '',
+        hint3: revealState?.hint3 ?? '',
+        guessingEnabled: revealState?.guessingEnabled ?? false,
+    });
+    const [saving, setSaving] = useState(false);
+    const [err, setErr]       = useState('');
+
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleSave = async () => {
+        setSaving(true);
+        setErr('');
+        try {
+            await api.put('/reveal/kit', form);
+            onSaved();
+        } catch (e) {
+            setErr(e?.response?.data?.message || 'Could not save. Try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="sheet-overlay" onClick={onClose}>
+            <div className="sheet reveal-kit-sheet" role="dialog" aria-label="Guessing kit" onClick={e => e.stopPropagation()}>
+                <div className="sheet-handle" />
+                <p className="reveal-kit-title">Set up guessing hints</p>
+                <p className="reveal-kit-sub">Give them 3 clues about who you are. Be vague enough to keep them guessing.</p>
+
+                {['hint1', 'hint2', 'hint3'].map((k, i) => (
+                    <div key={k} className="reveal-kit-field">
+                        <label className="reveal-kit-label" htmlFor={`hint-${k}`}>Hint {i + 1}</label>
+                        <input
+                            id={`hint-${k}`}
+                            className="field-input"
+                            value={form[k]}
+                            onChange={e => set(k, e.target.value)}
+                            placeholder={`e.g. ${['I wear glasses', 'I have a dog', 'I love hiking'][i]}`}
+                            maxLength={200}
+                        />
+                        <span className="reveal-kit-count">{form[k].length}/200</span>
+                    </div>
+                ))}
+
+                <div className="reveal-toggle-row">
+                    <span className="reveal-toggle-label">Let them guess me</span>
+                    <button
+                        role="switch"
+                        aria-checked={form.guessingEnabled}
+                        className={`reveal-toggle ${form.guessingEnabled ? 'reveal-toggle--on' : ''}`}
+                        onClick={() => set('guessingEnabled', !form.guessingEnabled)}
+                        aria-label="Enable guessing"
+                    />
+                </div>
+
+                {err && <p className="reveal-error">{err}</p>}
+
+                <div className="chat-confirm-btns" style={{ marginTop: 8 }}>
+                    <button className="chat-action-btn btn-accent" onClick={handleSave} disabled={saving} aria-busy={saving}>
+                        {saving ? '…' : 'Save'}
+                    </button>
+                    <button className="chat-action-btn btn-surface" onClick={onClose} disabled={saving}>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 const Chat = () => {
@@ -146,6 +354,10 @@ const Chat = () => {
     const [actionLoading, setActionLoading] = useState(false);
     const [showMutual,  setShowMutual]  = useState(false);
     const [atBottom,    setAtBottom]    = useState(true);
+
+    // Reveal state
+    const [revealState,  setRevealState]  = useState(null);
+    const [kitOpen,      setKitOpen]      = useState(false);
 
     const messagesListRef = useRef(null);
     const messagesEndRef  = useRef(null);
@@ -198,10 +410,19 @@ const Chat = () => {
         }
     }, [confessionId]);
 
+    const fetchRevealState = useCallback(async () => {
+        try {
+            const res = await api.get(`/confessions/${confessionId}/reveal-state`);
+            setRevealState(res.data);
+        } catch {
+            // reveal state not available — non-fatal
+        }
+    }, [confessionId]);
+
     const fetchAll = useCallback(async () => {
-        await Promise.all([fetchConfession(), fetchMessages()]);
+        await Promise.all([fetchConfession(), fetchMessages(), fetchRevealState()]);
         setLoading(false);
-    }, [fetchConfession, fetchMessages]);
+    }, [fetchConfession, fetchMessages, fetchRevealState]);
 
     useEffect(() => {
         fetchAll();
@@ -212,8 +433,23 @@ const Chat = () => {
         if (token) {
             socketService.connect(token);
             socketService.subscribe(`/user/queue/confession/${confessionId}`, (frame) => {
-                const event = frame?.body;
-                if (event === 'MUTUAL') setShowMutual(true);
+                const raw = frame?.body;
+
+                // Parse JSON events safely; fall back to bare string
+                let parsed = null;
+                try { parsed = JSON.parse(raw); } catch {}
+                const eventType = parsed?.type || raw;
+
+                if (eventType === 'MUTUAL') setShowMutual(true);
+
+                // On correct guess: refresh reveal state and messages
+                if (eventType === 'GUESSED' || raw === 'REVEALED') {
+                    fetchRevealState();
+                }
+                if (eventType === 'GUESS') {
+                    fetchRevealState();
+                }
+
                 fetchMessages();
                 fetchConfession();
                 api.post(`/confessions/${confessionId}/read`).catch(() => {});
@@ -230,7 +466,6 @@ const Chat = () => {
         const text = inputText.trim();
         if (!text || actionLoading) return;
 
-        // Optimistic
         setMessages(prev => [...prev, {
             id: `temp-${Date.now()}`,
             from: 'SELF',
@@ -250,7 +485,7 @@ const Chat = () => {
             setConfirmAction(null);
             await fetchAll();
         } catch {
-            // action failed silently; could surface a toast
+            // action failed silently
         } finally {
             setActionLoading(false);
         }
@@ -272,6 +507,11 @@ const Chat = () => {
 
     const alias   = loading ? '…' : (confession?.otherUserAlias ?? 'Chat');
     const grouped = groupMessages(messages);
+
+    // Whether to show reveal panels (only when thread is active)
+    const showRevealPanels = isActive && revealState !== null;
+    const showGuessingPanel = showRevealPanels && revealState?.role === 'RECEIVER';
+    const showLiveGuessFeed = showRevealPanels && revealState?.role === 'SENDER';
 
     // ── Status badge text ─────────────────────────────────────────────────
 
@@ -383,6 +623,23 @@ const Chat = () => {
                 </button>
             )}
 
+            {/* ── Reveal panels (between messages and action bar) ── */}
+            {showRevealPanels && (
+                <div className="reveal-panels">
+                    {showGuessingPanel && (
+                        <GuessingPanel
+                            revealState={revealState}
+                            confessionId={confessionId}
+                            onGuessed={() => { fetchMessages(); fetchRevealState(); }}
+                            onRefresh={fetchRevealState}
+                        />
+                    )}
+                    {showLiveGuessFeed && (
+                        <LiveGuessFeed revealState={revealState} />
+                    )}
+                </div>
+            )}
+
             {/* ── Action bar ── */}
             <div className="chat-action-bar">
 
@@ -420,7 +677,6 @@ const Chat = () => {
                 {isBlocked && (
                     <div className="chat-blocked-bar">
                         <p className="chat-state-banner">This conversation is blocked.</p>
-                        {/* Only the person who blocked can unblock */}
                         <button
                             className="btn-full btn-surface"
                             style={{ padding: '11px', marginTop: 2 }}
@@ -475,12 +731,23 @@ const Chat = () => {
                             {theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
                         </button>
 
+                        {/* Sender: manage guessing hints */}
+                        {isSender && isActive && (
+                            <button
+                                className="chat-sheet-item chat-sheet-item--gold"
+                                onClick={() => { setSheetOpen(false); setKitOpen(true); }}
+                            >
+                                <span className="chat-sheet-icon">✦</span>
+                                {revealState?.guessingEnabled ? 'Manage guessing hints' : 'Set up guessing'}
+                            </button>
+                        )}
+
                         {canReveal && (
                             <button
                                 className="chat-sheet-item chat-sheet-item--gold"
                                 onClick={() => { setSheetOpen(false); setConfirmAction('reveal'); }}
                             >
-                                <span className="chat-sheet-icon">✦</span>
+                                <span className="chat-sheet-icon">◎</span>
                                 Reveal yourself
                             </button>
                         )}
@@ -593,6 +860,15 @@ const Chat = () => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* ── Reveal kit sheet (sender) ── */}
+            {kitOpen && (
+                <RevealKitSheet
+                    revealState={revealState}
+                    onClose={() => setKitOpen(false)}
+                    onSaved={() => { setKitOpen(false); fetchRevealState(); }}
+                />
             )}
 
             {/* ── Mutual crush overlay ── */}
