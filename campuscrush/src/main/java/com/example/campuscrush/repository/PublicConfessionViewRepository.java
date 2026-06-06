@@ -24,6 +24,6 @@ public interface PublicConfessionViewRepository extends JpaRepository<PublicConf
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM PublicConfessionView pv WHERE pv.confession.createdAt < :threshold")
+    @Query(value = "DELETE FROM public_confession_views WHERE confession_id IN (SELECT id FROM public_confessions WHERE created_at < :threshold)", nativeQuery = true)
     void deleteByConfessionCreatedAtBefore(@Param("threshold") Instant threshold);
 }

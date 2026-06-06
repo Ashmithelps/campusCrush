@@ -3,6 +3,7 @@ package com.example.campuscrush.repository;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,13 +11,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.campuscrush.entity.feed.PublicConfession;
-import com.example.campuscrush.entity.feed.PublicConfessionStatus;
 import com.example.campuscrush.entity.user.User;
 
 public interface PublicConfessionRepository extends JpaRepository<PublicConfession, Long> {
 
     // Unseen-first feed: LEFT JOIN on views so unseen posts sort to top.
     // Excludes expired posts and posts by blocked authors.
+    // Unseen-first: Pageable carries the LIMIT so Hibernate handles it safely.
     @Query(value = """
         SELECT pc.* FROM public_confessions pc
         LEFT JOIN public_confession_views pv
@@ -30,14 +31,13 @@ public interface PublicConfessionRepository extends JpaRepository<PublicConfessi
         ORDER BY
           CASE WHEN pv.viewer_id IS NULL THEN 0 ELSE 1 END ASC,
           pc.id DESC
-        LIMIT :lim
         """, nativeQuery = true)
     List<PublicConfession> findFeed(
         @Param("campus")   String campus,
         @Param("status")   String status,
         @Param("viewerId") Long viewerId,
         @Param("expiry")   Instant expiry,
-        @Param("lim")      int lim
+        Pageable pageable
     );
 
     // Daily post count for rate limiting (3/day)

@@ -18,6 +18,6 @@ public interface PublicConfessionReportRepository extends JpaRepository<PublicCo
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM PublicConfessionReport pr WHERE pr.confession.createdAt < :threshold")
+    @Query(value = "DELETE FROM public_confession_reports WHERE confession_id IN (SELECT id FROM public_confessions WHERE created_at < :threshold)", nativeQuery = true)
     void deleteByConfessionCreatedAtBefore(@Param("threshold") Instant threshold);
 }

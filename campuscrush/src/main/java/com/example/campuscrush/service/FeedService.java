@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,8 @@ public class FeedService {
         String campus  = campusFromEmail(viewer.getCollegeEmail());
         Instant expiry = Instant.now().minus(TTL_HOURS, ChronoUnit.HOURS);
         List<PublicConfession> page = confessionRepo.findFeed(
-            campus, PublicConfessionStatus.VISIBLE.name(), viewer.getId(), expiry, PAGE_SIZE);
+            campus, PublicConfessionStatus.VISIBLE.name(), viewer.getId(), expiry,
+            PageRequest.of(0, PAGE_SIZE));
         return page.stream().map(this::toResponse).toList();
     }
 
