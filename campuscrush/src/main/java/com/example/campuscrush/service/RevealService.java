@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -33,7 +32,6 @@ import com.example.campuscrush.repository.RevealGuessRepository;
 import com.example.campuscrush.repository.RevealKitRepository;
 import com.example.campuscrush.repository.RevealStateRepository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -53,7 +51,6 @@ public class RevealService {
     private final ConfessionRepository  confessionRepo;
     private final MessageRepository     messageRepo;
     private final SimpMessagingTemplate messaging;
-    private final ObjectMapper          objectMapper;
 
     // ── Kit management ────────────────────────────────────────────────────────
 
@@ -219,12 +216,8 @@ public class RevealService {
                 .type(MessageType.REVEAL)
                 .build());
 
-            pushJson(senderPub, chatDest, Map.of(
-                "type", "GUESSED",
-                "guessedRoll", roll,
-                "correct", true,
-                "guessesRemaining", 0
-            ));
+            pushJson(senderPub, chatDest,
+                "{\"type\":\"GUESSED\",\"guessedRoll\":\"" + roll + "\",\"correct\":true,\"guessesRemaining\":0}");
             messaging.convertAndSendToUser(receiverPub, "/queue/confessions", "REVEALED");
             messaging.convertAndSendToUser(receiverPub, chatDest, "REVEALED");
             messaging.convertAndSendToUser(senderPub,   chatDest, "REVEALED");
@@ -238,12 +231,8 @@ public class RevealService {
             }
             stateRepo.save(state);
 
-            pushJson(senderPub, chatDest, Map.of(
-                "type", "GUESS",
-                "guessedRoll", roll,
-                "correct", false,
-                "guessesRemaining", state.getGuessesRemaining()
-            ));
+            pushJson(senderPub, chatDest,
+                "{\"type\":\"GUESS\",\"guessedRoll\":\"" + roll + "\",\"correct\":false,\"guessesRemaining\":" + state.getGuessesRemaining() + "}");
         }
 
         return new GuessResponse(
@@ -318,9 +307,9 @@ public class RevealService {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
 
-    private void pushJson(String user, String dest, Object payload) {
+    private void pushJson(String user, String dest, String json) {
         try {
-            messaging.convertAndSendToUser(user, dest, objectMapper.writeValueAsString(payload));
+            messaging.convertAndSendToUser(user, dest, json);
         } catch (Exception ignored) {}
     }
 }
