@@ -5,7 +5,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +25,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FeedService {
 
-    private static final int DAILY_POST_LIMIT   = 3;
-    private static final int MAX_CONTENT_LENGTH = 300;
-    private static final int AUTO_HIDE_REPORTS  = 3;
-    private static final int PAGE_SIZE          = 10;
-    private static final long MAX_CURSOR        = Long.MAX_VALUE;
+    private static final int  DAILY_POST_LIMIT   = 3;
+    private static final int  MAX_CONTENT_LENGTH = 300;
+    private static final int  AUTO_HIDE_REPORTS  = 3;
+    private static final int  PAGE_SIZE          = 20;
+    private static final long TTL_HOURS          = 24;
 
     private static final Set<String> BLOCKED_WORDS = Set.of(
         "fuck", "shit", "bitch", "asshole", "bastard", "cunt", "dick", "pussy", "whore", "slut"
@@ -40,12 +39,11 @@ public class FeedService {
     private final PublicConfessionViewRepository viewRepo;
     private final PublicConfessionReportRepository reportRepo;
 
-    public List<FeedItemResponse> getFeed(User viewer, Long cursor) {
-        String campus = campusFromEmail(viewer.getCollegeEmail());
-        List<PublicConfession> page = cursor == null
-            ? confessionRepo.findFeedNoCursor(campus, PublicConfessionStatus.VISIBLE, viewer, PageRequest.of(0, PAGE_SIZE))
-            : confessionRepo.findFeedWithCursor(campus, PublicConfessionStatus.VISIBLE, cursor, viewer, PageRequest.of(0, PAGE_SIZE));
-
+    public List<FeedItemResponse> getFeed(User viewer) {
+        String campus  = campusFromEmail(viewer.getCollegeEmail());
+        Instant expiry = Instant.now().minus(TTL_HOURS, ChronoUnit.HOURS);
+        List<PublicConfession> page = confessionRepo.findFeed(
+            campus, PublicConfessionStatus.VISIBLE.name(), viewer.getId(), expiry, PAGE_SIZE);
         return page.stream().map(this::toResponse).toList();
     }
 

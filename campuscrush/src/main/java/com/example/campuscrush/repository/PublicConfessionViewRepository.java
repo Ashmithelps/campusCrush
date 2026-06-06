@@ -1,9 +1,12 @@
 package com.example.campuscrush.repository;
 
+import java.time.Instant;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.campuscrush.entity.feed.PublicConfessionView;
 import com.example.campuscrush.entity.feed.PublicConfessionViewId;
@@ -18,4 +21,9 @@ public interface PublicConfessionViewRepository extends JpaRepository<PublicConf
         ON CONFLICT DO NOTHING
         """, nativeQuery = true)
     int insertIfAbsent(@Param("confessionId") Long confessionId, @Param("viewerId") Long viewerId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PublicConfessionView pv WHERE pv.confession.createdAt < :threshold")
+    void deleteByConfessionCreatedAtBefore(@Param("threshold") Instant threshold);
 }

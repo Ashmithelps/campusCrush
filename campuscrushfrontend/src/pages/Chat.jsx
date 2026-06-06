@@ -501,6 +501,7 @@ const Chat = () => {
     const state      = confession?.state;
     const isSender   = confession?.isSender;
     const isBlocked  = state === 'BLOCKED';
+    const isBlocker  = confession?.isBlocker ?? false;
     const isPending  = state === 'CREATED';
     const isActive   = state === 'UNLOCKED' || state === 'REVEALED';
     const canReveal  = isSender && !confession?.isRevealed && isActive;
@@ -677,14 +678,16 @@ const Chat = () => {
                 {isBlocked && (
                     <div className="chat-blocked-bar">
                         <p className="chat-state-banner">This conversation is blocked.</p>
-                        <button
-                            className="btn-full btn-surface"
-                            style={{ padding: '11px', marginTop: 2 }}
-                            onClick={() => setConfirmAction('unblock')}
-                            disabled={actionLoading}
-                        >
-                            Unblock
-                        </button>
+                        {isBlocker && (
+                            <button
+                                className="btn-full btn-surface"
+                                style={{ padding: '11px', marginTop: 2 }}
+                                onClick={() => setConfirmAction('unblock')}
+                                disabled={actionLoading}
+                            >
+                                Unblock
+                            </button>
+                        )}
                     </div>
                 )}
 

@@ -5,9 +5,8 @@ import TabBar from '../components/TabBar';
 import { useTheme } from '../context/ThemeContext';
 import api, { apiError } from '../services/api';
 
-const SWIPE_THRESHOLD = 100; // px to trigger dismiss
-const ROTATION_RANGE  = 18;  // max card tilt in degrees
-const PAGE_SIZE       = 10;
+const SWIPE_THRESHOLD = 100;
+const ROTATION_RANGE  = 18;
 
 // ── Skeleton ─────────────────────────────────────────────
 const FeedSkeleton = () => (
@@ -20,13 +19,13 @@ const FeedSkeleton = () => (
     </div>
 );
 
-// ── Empty / End state ──────────────────────────────────────
+// ── Empty state (zero posts on the server for this campus) ─
 const EndState = ({ onRefresh }) => (
     <div className="feed-deck-area">
         <div className="feed-end">
             <Logo size={28} settled />
-            <p className="feed-end-title">You're all caught up</p>
-            <p className="feed-end-sub">Check back later for new confessions.</p>
+            <p className="feed-end-title">Nothing here yet</p>
+            <p className="feed-end-sub">Be the first to post something.</p>
             <button className="btn-full btn-surface feed-end-btn" onClick={onRefresh}>
                 Refresh
             </button>
@@ -35,9 +34,9 @@ const EndState = ({ onRefresh }) => (
 );
 
 // ── Single swipeable card ─────────────────────────────────
-const SwipeCard = ({ item, onDismiss, onReport, isTop, stackIndex }) => {
-    const x      = useMotionValue(0);
-    const rotate = useTransform(x, [-200, 200], [-ROTATION_RANGE, ROTATION_RANGE]);
+const SwipeCard = ({ item, onDismiss, isTop, stackIndex }) => {
+    const x       = useMotionValue(0);
+    const rotate  = useTransform(x, [-200, 200], [-ROTATION_RANGE, ROTATION_RANGE]);
     const opacity = useTransform(x, [-160, -80, 0, 80, 160], [0, 1, 1, 1, 0]);
 
     const [reportOpen, setReportOpen] = useState(false);
@@ -57,7 +56,7 @@ const SwipeCard = ({ item, onDismiss, onReport, isTop, stackIndex }) => {
         try {
             await api.post(`/feed/${item.id}/report`, { reason });
         } catch {
-            // swallow — user sees feedback either way
+            // swallow
         }
         setReported(true);
         setReportOpen(false);
@@ -139,63 +138,74 @@ const SwipeCard = ({ item, onDismiss, onReport, isTop, stackIndex }) => {
 // ── Main Feed page ─────────────────────────────────────────
 const Feed = () => {
     const { theme, toggleTheme } = useTheme();
+
     const [cards,       setCards]       = useState([]);
     const [loading,     setLoading]     = useState(true);
     const [fetchError,  setFetchError]  = useState(false);
-    const [cursor,      setCursor]      = useState(null);
-    const [exhausted,   setExhausted]   = useState(false);
+    const [empty,       setEmpty]       = useState(false);   // server returned 0 items
     const [composeOpen, setComposeOpen] = useState(false);
     const [draft,       setDraft]       = useState('');
     const [posting,     setPosting]     = useState(false);
     const [postError,   setPostError]   = useState('');
     const [postSuccess, setPostSuccess] = useState(false);
-    const fetchingMore = useRef(false);
 
-    const fetchPage = useCallback(async (cur) => {
-        if (fetchingMore.current) return;
-        fetchingMore.current = true;
+    // Track which IDs have been swiped this round; re-fetch when all cycled
+    const seenThisRound = useRef(new Set());
+    const fetching      = useRef(false);
+
+    const fetchFeed = useCallback(async () => {
+        if (fetching.current) return;
+        fetching.current = true;
         try {
-            const url = cur ? `/feed?cursor=${cur}` : '/feed';
-            const res = await api.get(url);
+            const res = await api.get('/feed');
             const items = res.data;
             if (items.length === 0) {
-                setExhausted(true);
+                setEmpty(true);
+                setCards([]);
             } else {
-                setCards(prev => [...prev, ...items]);
-                setCursor(items[items.length - 1].id);
+                setEmpty(false);
+                setCards(items);
+                seenThisRound.current = new Set();
             }
             setFetchError(false);
         } catch {
             setFetchError(true);
         } finally {
             setLoading(false);
-            fetchingMore.current = false;
+            fetching.current = false;
         }
     }, []);
 
-    useEffect(() => {
-        fetchPage(null);
-    }, [fetchPage]);
+    useEffect(() => { fetchFeed(); }, [fetchFeed]);
 
-    const handleDismiss = useCallback(async (id) => {
-        // Record view fire-and-forget
+    const handleDismiss = useCallback((id) => {
+        // Record view fire-and-forget (lowers priority on next server fetch)
         api.post(`/feed/${id}/view`).catch(() => {});
+
+        seenThisRound.current.add(id);
+
         setCards(prev => {
-            const next = prev.filter(c => c.id !== id);
-            // Prefetch when nearing end
-            if (next.length <= 2 && !exhausted) {
-                fetchPage(cursor);
+            if (prev.length === 0) return prev;
+            // Move the swiped card to the back of the deck
+            const [head, ...tail] = prev;
+            const next = [...tail, head];
+
+            // If every card has been swiped at least once this round, re-fetch
+            if (seenThisRound.current.size >= prev.length) {
+                seenThisRound.current = new Set();
+                fetchFeed();
             }
+
             return next;
         });
-    }, [cursor, exhausted, fetchPage]);
+    }, [fetchFeed]);
 
     const handleRefresh = () => {
         setCards([]);
-        setCursor(null);
-        setExhausted(false);
+        setEmpty(false);
         setLoading(true);
-        fetchPage(null);
+        seenThisRound.current = new Set();
+        fetchFeed();
     };
 
     const handlePost = async (e) => {
@@ -207,7 +217,6 @@ const Feed = () => {
             const res = await api.post('/feed', { content: draft.trim() });
             setDraft('');
             setPostSuccess(true);
-            // Prepend the new card so the author sees it immediately
             setCards(prev => [res.data, ...prev]);
             setTimeout(() => {
                 setPostSuccess(false);
@@ -228,7 +237,6 @@ const Feed = () => {
     };
 
     const visibleCards = cards.slice(0, 3);
-    const isEmpty = !loading && !fetchError && cards.length === 0 && exhausted;
 
     return (
         <div className="feed-page">
@@ -258,9 +266,7 @@ const Feed = () => {
                         </button>
                     </div>
                 </div>
-            ) : isEmpty ? (
-                <EndState onRefresh={handleRefresh} />
-            ) : cards.length === 0 ? (
+            ) : empty ? (
                 <EndState onRefresh={handleRefresh} />
             ) : (
                 <div className="feed-deck-area">

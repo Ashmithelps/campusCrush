@@ -341,10 +341,16 @@ public void markAsRead(Long confessionId, User user) {
                         otherUserPublicId = otherUser.getPublicId();
                         if (isSender) {
                             aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
+                        } else if (Boolean.TRUE.equals(c.getIsRevealed())) {
+                            // Receiver sees sender's roll number once identity is revealed
+                            aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
                         } else {
                             aliasToShow = otherUser.getDisplayAlias();
                         }
                     }
+
+                    boolean isBlocker = c.getBlockedBy() != null
+                            && user.getId().equals(c.getBlockedBy().getId());
 
                     return com.example.campuscrush.dto.ConfessionResponse.builder()
                             .id(c.getId())
@@ -357,6 +363,7 @@ public void markAsRead(Long confessionId, User user) {
                             .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
                             .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
                             .showMutualAnimation(isSender ? Boolean.FALSE.equals(c.getMutualSeenBySender()) : Boolean.FALSE.equals(c.getMutualSeenByReceiver()))
+                            .isBlocker(isBlocker)
                             .build();
                 })
                 .toList();
@@ -401,14 +408,21 @@ public void markAsRead(Long confessionId, User user) {
         } else {
             User otherUser = isSender ? c.getReceiver() : c.getSender();
             otherUserPublicId = otherUser.getPublicId();
-            aliasToShow = isSender
-                    ? (otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString())
-                    : otherUser.getDisplayAlias();
+            if (isSender) {
+                aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
+            } else if (Boolean.TRUE.equals(c.getIsRevealed())) {
+                aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
+            } else {
+                aliasToShow = otherUser.getDisplayAlias();
+            }
         }
 
         boolean showMutual = isSender
                 ? Boolean.FALSE.equals(c.getMutualSeenBySender())
                 : Boolean.FALSE.equals(c.getMutualSeenByReceiver());
+
+        boolean isBlocker = c.getBlockedBy() != null
+                && user.getId().equals(c.getBlockedBy().getId());
 
         return com.example.campuscrush.dto.ConfessionResponse.builder()
                 .id(c.getId())
@@ -421,6 +435,7 @@ public void markAsRead(Long confessionId, User user) {
                 .hasUnread(isSender ? Boolean.TRUE.equals(c.getSenderHasUnread()) : Boolean.TRUE.equals(c.getReceiverHasUnread()))
                 .isRevealed(Boolean.TRUE.equals(c.getIsRevealed()))
                 .showMutualAnimation(showMutual)
+                .isBlocker(isBlocker)
                 .build();
     }
 
