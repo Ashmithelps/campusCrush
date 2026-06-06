@@ -2833,6 +2833,19 @@ button, .conf-card, .fab, .badge, .chat-back-btn,
   overscroll-behavior: none;
 }
 
+/* ── Functional data (roll numbers, IDs) ──────────────────
+   Applies to any text that is an identifier/number rather than
+   human prose: roll numbers (23BAI70503), codes, counts.
+   Uses tabular lining figures so digits align and mixed
+   alphanumerics read as data, not decorative text.
+───────────────────────────────────────────────────── */
+.data {
+  font-family: var(--font);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar        { width: 3px; }
 ::-webkit-scrollbar-track  { background: transparent; }

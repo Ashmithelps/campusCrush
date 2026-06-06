@@ -132,7 +132,7 @@ const ConfessionRow = ({ c, index, onClick }) => {
 
             <div className="conf-card-body">
                 <div className="conf-card-top">
-                    <span className={`conf-card-alias${c.hasUnread ? ' conf-card-alias--unread' : ''}`}>
+                    <span className={`conf-card-alias${c.hasUnread ? ' conf-card-alias--unread' : ''}${c.isSender ? ' data' : ''}`}>
                         {alias}
                     </span>
                     <div className="conf-card-meta">

@@ -319,7 +319,7 @@ const Chat = () => {
                 {!loading && <ChatAvatar alias={alias} />}
 
                 <div className="chat-header-info">
-                    <div className="chat-header-name">{alias}</div>
+                    <div className={`chat-header-name${isSender ? ' data' : ''}`}>{alias}</div>
                     {statusLabel && (
                         <div className="chat-header-sub">{statusLabel}</div>
                     )}
