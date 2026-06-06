@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import MutualCrushOverlay from '../components/MutualCrushOverlay';
 import Logo from '../components/Logo';
+import TabBar from '../components/TabBar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { apiError } from '../services/api';
@@ -329,6 +330,8 @@ const Dashboard = () => {
                     }}
                 />
             )}
+
+            <TabBar active="inbox" />
 
             {/* Bottom Sheet */}
             {sheetOpen && (

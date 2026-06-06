@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Verify from './pages/Verify';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
+import Feed from './pages/Feed';
 import Splash from './pages/Splash';
 import AuthChoice from './pages/AuthChoice';
 import HeartLoader from './components/HeartLoader';
@@ -52,6 +53,12 @@ function App() {
           <Route path="/chat/:confessionId" element={
             <ProtectedRoute>
               <Chat />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/feed" element={
+            <ProtectedRoute>
+              <Feed />
             </ProtectedRoute>
           } />
 
