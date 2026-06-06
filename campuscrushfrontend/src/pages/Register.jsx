@@ -1,29 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { apiError } from '../services/api';
 import Logo from '../components/Logo';
 import { isValidEmail } from '../utils/auth';
-
-const Atmosphere = () => (
-    <>
-        <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-            <filter id="rg-noise">
-                <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
-                <feColorMatrix type="saturate" values="0" />
-            </filter>
-            <rect width="100%" height="100%" filter="url(#rg-noise)" />
-        </svg>
-        <div className="splash-glow"     aria-hidden="true" />
-        <div className="splash-vignette" aria-hidden="true" />
-    </>
-);
+import AuthShell from '../layouts/AuthShell';
 
 const Register = () => {
     const navigate = useNavigate();
     const { register } = useAuth();
-    const { theme, toggleTheme } = useTheme();
 
     const [email,       setEmail]       = useState('');
     const [emailStatus, setEmailStatus] = useState('idle'); // idle|valid|error
@@ -67,23 +52,13 @@ const Register = () => {
     ].filter(Boolean).join(' ');
 
     return (
-        <div className="rg-page">
-            <Atmosphere />
-
+        <AuthShell>
             <button
                 className="ac-back ac-back--in"
                 onClick={() => navigate('/auth')}
                 aria-label="Back to sign-in options"
             >
                 ←
-            </button>
-
-            <button
-                className="splash-theme-toggle"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-                {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
 
             <div className="rg-body">
@@ -141,7 +116,7 @@ const Register = () => {
                     <button type="button" onClick={() => navigate('/login')}>Log in</button>
                 </p>
             </div>
-        </div>
+        </AuthShell>
     );
 };
 

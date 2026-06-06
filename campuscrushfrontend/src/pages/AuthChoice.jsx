@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/Logo';
+import AuthShell from '../layouts/AuthShell';
 
 const AuthChoice = () => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
     const [show, setShow] = useState(false);
     const markRef = useRef(null);
 
@@ -54,35 +53,13 @@ const AuthChoice = () => {
     const bodyClass = `ac-body${show ? ' ac-body--in' : ''}`;
 
     return (
-        <div className="ac-page">
-
-            {/* Same atmospheric layers as landing */}
-            <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                <filter id="ac-noise">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
-                    <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter="url(#ac-noise)" />
-            </svg>
-            <div className="splash-glow"    aria-hidden="true" />
-            <div className="splash-vignette" aria-hidden="true" />
-
-            {/* Back affordance */}
+        <AuthShell pageClass="ac-page">
             <button
                 className={`ac-back${show ? ' ac-back--in' : ''}`}
                 onClick={() => navigate('/')}
                 aria-label="Back to home"
             >
                 ←
-            </button>
-
-            {/* Theme toggle */}
-            <button
-                className="splash-theme-toggle"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-                {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
 
             <div className={bodyClass}>
@@ -117,7 +94,7 @@ const AuthChoice = () => {
                 <p className="ac-micro">Students only · @cuchd.in</p>
 
             </div>
-        </div>
+        </AuthShell>
     );
 };
 

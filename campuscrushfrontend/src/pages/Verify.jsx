@@ -4,25 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { apiError } from '../services/api';
 import Logo from '../components/Logo';
 import SegmentedInput from '../components/SegmentedInput';
+import AuthShell from '../layouts/AuthShell';
 
 const RESEND_COOLDOWN  = 60;
 const AUTO_SUBMIT_MS   = 400;
 const SUCCESS_HOLD_MS  = 820;
 const EXIT_MS          = 340;
-
-const Atmosphere = () => (
-    <>
-        <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-            <filter id="vf-noise">
-                <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
-                <feColorMatrix type="saturate" values="0" />
-            </filter>
-            <rect width="100%" height="100%" filter="url(#vf-noise)" />
-        </svg>
-        <div className="splash-glow"     aria-hidden="true" />
-        <div className="splash-vignette" aria-hidden="true" />
-    </>
-);
 
 const Verify = () => {
     const navigate  = useNavigate();
@@ -123,9 +110,7 @@ const Verify = () => {
     if (!email || !flow) return null;
 
     return (
-        <div className={`rg-page${exiting ? ' vf-page--out' : ''}`}>
-            <Atmosphere />
-
+        <AuthShell pageClass={`rg-page${exiting ? ' vf-page--out' : ''}`}>
             <button
                 className="ac-back ac-back--in"
                 onClick={handleBack}
@@ -206,7 +191,7 @@ const Verify = () => {
                     </p>
                 </div>
             </div>
-        </div>
+        </AuthShell>
     );
 };
 

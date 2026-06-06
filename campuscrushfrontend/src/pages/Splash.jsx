@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/Logo';
+import AuthShell from '../layouts/AuthShell';
 
 // ─── Animation config ─────────────────────────────────────────────
 // Tune these values to adjust the entrance choreography.
@@ -21,7 +21,6 @@ const DELAYS = {
 
 const Splash = () => {
     const navigate  = useNavigate();
-    const { theme, toggleTheme } = useTheme();
     const [show, setShow]       = useState(false);
     const [exiting, setExiting] = useState(false);
     const markRef = useRef(null);
@@ -95,27 +94,7 @@ const Splash = () => {
     ].filter(Boolean).join(' ');
 
     return (
-        <div className="splash-page">
-
-            <svg className="splash-grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                <filter id="splash-noise">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="3" stitchTiles="stitch" />
-                    <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter="url(#splash-noise)" />
-            </svg>
-
-            <div className="splash-glow" aria-hidden="true" />
-            <div className="splash-vignette" aria-hidden="true" />
-
-            <button
-                className="splash-theme-toggle"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-                {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
-
+        <AuthShell pageClass="splash-page">
             <div className={bodyClass}>
 
                 <div className="splash-mark" ref={markRef}>
@@ -141,7 +120,7 @@ const Splash = () => {
                 </div>
 
             </div>
-        </div>
+        </AuthShell>
     );
 };
 

@@ -1,14 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import Logo from '../components/Logo';
-import TabBar from '../components/TabBar';
-import { useTheme } from '../context/ThemeContext';
+import AppShell from '../layouts/AppShell';
 import api, { apiError } from '../services/api';
 
 const SWIPE_THRESHOLD = 100;
 const ROTATION_RANGE  = 18;
 
-// ── Skeleton ─────────────────────────────────────────────
 const FeedSkeleton = () => (
     <div className="feed-deck-area">
         <div className="feed-card feed-card--skel">
@@ -19,11 +16,14 @@ const FeedSkeleton = () => (
     </div>
 );
 
-// ── Empty state (zero posts on the server for this campus) ─
 const EndState = ({ onRefresh }) => (
     <div className="feed-deck-area">
         <div className="feed-end">
-            <Logo size={28} settled />
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ opacity: 0.35 }}>
+                <circle cx="8"  cy="16" r="4" fill="var(--accent)" />
+                <circle cx="16" cy="16" r="4" fill="var(--accent)" />
+                <circle cx="24" cy="16" r="4" fill="var(--accent)" />
+            </svg>
             <p className="feed-end-title">Nothing here yet</p>
             <p className="feed-end-sub">Be the first to post something.</p>
             <button className="btn-full btn-surface feed-end-btn" onClick={onRefresh}>
@@ -33,7 +33,6 @@ const EndState = ({ onRefresh }) => (
     </div>
 );
 
-// ── Single swipeable card ─────────────────────────────────
 const SwipeCard = ({ item, onDismiss, isTop, stackIndex }) => {
     const x       = useMotionValue(0);
     const rotate  = useTransform(x, [-200, 200], [-ROTATION_RANGE, ROTATION_RANGE]);
@@ -135,21 +134,17 @@ const SwipeCard = ({ item, onDismiss, isTop, stackIndex }) => {
     );
 };
 
-// ── Main Feed page ─────────────────────────────────────────
 const Feed = () => {
-    const { theme, toggleTheme } = useTheme();
-
     const [cards,       setCards]       = useState([]);
     const [loading,     setLoading]     = useState(true);
     const [fetchError,  setFetchError]  = useState(false);
-    const [empty,       setEmpty]       = useState(false);   // server returned 0 items
+    const [empty,       setEmpty]       = useState(false);
     const [composeOpen, setComposeOpen] = useState(false);
     const [draft,       setDraft]       = useState('');
     const [posting,     setPosting]     = useState(false);
     const [postError,   setPostError]   = useState('');
     const [postSuccess, setPostSuccess] = useState(false);
 
-    // Track which IDs have been swiped this round; re-fetch when all cycled
     const seenThisRound = useRef(new Set());
     const fetching      = useRef(false);
 
@@ -179,18 +174,15 @@ const Feed = () => {
     useEffect(() => { fetchFeed(); }, [fetchFeed]);
 
     const handleDismiss = useCallback((id) => {
-        // Record view fire-and-forget (lowers priority on next server fetch)
         api.post(`/feed/${id}/view`).catch(() => {});
 
         seenThisRound.current.add(id);
 
         setCards(prev => {
             if (prev.length === 0) return prev;
-            // Move the swiped card to the back of the deck
             const [head, ...tail] = prev;
             const next = [...tail, head];
 
-            // If every card has been swiped at least once this round, re-fetch
             if (seenThisRound.current.size >= prev.length) {
                 seenThisRound.current = new Set();
                 fetchFeed();
@@ -239,111 +231,99 @@ const Feed = () => {
     const visibleCards = cards.slice(0, 3);
 
     return (
-        <div className="feed-page">
-            {/* Header */}
-            <header className="dash-header">
-                <div className="dash-header-left">
-                    <Logo size={26} settled />
-                    <span className="dash-header-alias">Feed</span>
-                </div>
-                <div className="dash-header-right">
-                    <button className="btn-theme" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-                        {theme === 'dark' ? 'Light' : 'Dark'}
-                    </button>
-                </div>
-            </header>
+        <AppShell onConfess={() => setComposeOpen(true)}>
+            <div className="feed-page">
 
-            {/* Deck area */}
-            {loading ? (
-                <FeedSkeleton />
-            ) : fetchError ? (
-                <div className="feed-deck-area">
-                    <div className="feed-end">
-                        <p className="feed-end-title" style={{ fontSize: '1rem' }}>Could not load</p>
-                        <p className="feed-end-sub">Check your connection.</p>
-                        <button className="btn-full btn-surface feed-end-btn" onClick={handleRefresh}>
-                            Retry
-                        </button>
+                {/* Deck area */}
+                {loading ? (
+                    <FeedSkeleton />
+                ) : fetchError ? (
+                    <div className="feed-deck-area">
+                        <div className="feed-end">
+                            <p className="feed-end-title" style={{ fontSize: '1rem' }}>Could not load</p>
+                            <p className="feed-end-sub">Check your connection.</p>
+                            <button className="btn-full btn-surface feed-end-btn" onClick={handleRefresh}>
+                                Retry
+                            </button>
+                        </div>
                     </div>
-                </div>
-            ) : empty ? (
-                <EndState onRefresh={handleRefresh} />
-            ) : (
-                <div className="feed-deck-area">
-                    <div className="feed-deck">
-                        {[...visibleCards].reverse().map((item, revIdx) => {
-                            const stackIndex = visibleCards.length - 1 - revIdx;
-                            return (
-                                <SwipeCard
-                                    key={item.id}
-                                    item={item}
-                                    isTop={stackIndex === 0}
-                                    stackIndex={stackIndex}
-                                    onDismiss={handleDismiss}
-                                />
-                            );
-                        })}
-                    </div>
-                    <p className="feed-hint">Swipe to read the next one</p>
-                </div>
-            )}
-
-            {/* Compose FAB */}
-            <button
-                className="fab"
-                onClick={() => setComposeOpen(true)}
-                aria-label="Post a confession"
-            >
-                <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
-                Confess
-            </button>
-
-            {/* Compose sheet */}
-            {composeOpen && (
-                <div className="sheet-overlay" onClick={closeCompose}>
-                    <div className="sheet" onClick={e => e.stopPropagation()}>
-                        <div className="sheet-handle" />
-                        <div className="sheet-title">Post anonymously</div>
-
-                        {postSuccess ? (
-                            <p className="invite-sent" style={{ textAlign: 'center', padding: '24px 0' }}>
-                                ✓ Posted
-                            </p>
-                        ) : (
-                            <>
-                                <div className="field">
-                                    <textarea
-                                        className="field-input feed-compose-textarea"
-                                        placeholder="Something you've been holding in…"
-                                        value={draft}
-                                        onChange={e => setDraft(e.target.value.slice(0, 300))}
-                                        rows={4}
-                                        autoFocus
+                ) : empty ? (
+                    <EndState onRefresh={handleRefresh} />
+                ) : (
+                    <div className="feed-deck-area">
+                        <div className="feed-deck">
+                            {[...visibleCards].reverse().map((item, revIdx) => {
+                                const stackIndex = visibleCards.length - 1 - revIdx;
+                                return (
+                                    <SwipeCard
+                                        key={item.id}
+                                        item={item}
+                                        isTop={stackIndex === 0}
+                                        stackIndex={stackIndex}
+                                        onDismiss={handleDismiss}
                                     />
-                                    <span className="feed-compose-count data">{draft.length}/300</span>
-                                </div>
-
-                                {postError && (
-                                    <p className="error-text" style={{ marginBottom: 14 }}>{postError}</p>
-                                )}
-
-                                <button
-                                    className="btn-full btn-accent"
-                                    onClick={handlePost}
-                                    disabled={posting || !draft.trim()}
-                                >
-                                    {posting ? 'Posting…' : 'Post anonymously'}
-                                </button>
-
-                                <p className="feed-compose-limit">3 posts per day · no identity is ever shared</p>
-                            </>
-                        )}
+                                );
+                            })}
+                        </div>
+                        <p className="feed-hint">Swipe to read the next one</p>
                     </div>
-                </div>
-            )}
+                )}
 
-            <TabBar active="feed" />
-        </div>
+                {/* FAB (mobile only — hidden on desktop via CSS) */}
+                <button
+                    className="fab"
+                    onClick={() => setComposeOpen(true)}
+                    aria-label="Post a confession"
+                >
+                    <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
+                    Confess
+                </button>
+
+                {/* Compose sheet */}
+                {composeOpen && (
+                    <div className="sheet-overlay" onClick={closeCompose}>
+                        <div className="sheet" onClick={e => e.stopPropagation()}>
+                            <div className="sheet-handle" />
+                            <div className="sheet-title">Post anonymously</div>
+
+                            {postSuccess ? (
+                                <p className="invite-sent" style={{ textAlign: 'center', padding: '24px 0' }}>
+                                    ✓ Posted
+                                </p>
+                            ) : (
+                                <>
+                                    <div className="field">
+                                        <textarea
+                                            className="field-input feed-compose-textarea"
+                                            placeholder="Something you've been holding in…"
+                                            value={draft}
+                                            onChange={e => setDraft(e.target.value.slice(0, 300))}
+                                            rows={4}
+                                            autoFocus
+                                        />
+                                        <span className="feed-compose-count data">{draft.length}/300</span>
+                                    </div>
+
+                                    {postError && (
+                                        <p className="error-text" style={{ marginBottom: 14 }}>{postError}</p>
+                                    )}
+
+                                    <button
+                                        className="btn-full btn-accent"
+                                        onClick={handlePost}
+                                        disabled={posting || !draft.trim()}
+                                    >
+                                        {posting ? 'Posting…' : 'Post anonymously'}
+                                    </button>
+
+                                    <p className="feed-compose-limit">3 posts per day · no identity is ever shared</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </AppShell>
     );
 };
 

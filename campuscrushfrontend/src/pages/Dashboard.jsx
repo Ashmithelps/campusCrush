@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import MutualCrushOverlay from '../components/MutualCrushOverlay';
-import Logo from '../components/Logo';
-import TabBar from '../components/TabBar';
+import AppShell from '../layouts/AppShell';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import api, { apiError } from '../services/api';
 import socket from '../services/socket';
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +51,6 @@ function groupConfessions(list) {
     };
 }
 
-// Builds a flat list of { type:'header'|'row', ... } for unified stagger indexing
 function buildFlatList(confessions) {
     const { forYou, convos, waiting, blocked } = groupConfessions(confessions);
     const sections = [
@@ -87,7 +84,11 @@ const SkeletonRows = () => (
 const EmptyState = () => (
     <div className="dash-empty dash-empty--brand">
         <div className="dash-empty-logo">
-            <Logo size={32} settled />
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ opacity: 0.28 }}>
+                <circle cx="8"  cy="16" r="4" fill="var(--accent)" />
+                <circle cx="16" cy="16" r="4" fill="var(--accent)" />
+                <circle cx="24" cy="16" r="4" fill="var(--accent)" />
+            </svg>
         </div>
         <p className="dash-empty-title">
             The feeling
@@ -150,8 +151,7 @@ const ConfessionRow = ({ c, index, onClick }) => {
 };
 
 const Dashboard = () => {
-    const { logout, user }            = useAuth();
-    const { theme, toggleTheme }      = useTheme();
+    const { user }               = useAuth();
     const [confessions, setConfessions] = useState([]);
     const [loading, setLoading]         = useState(true);
     const [fetchError, setFetchError]   = useState(false);
@@ -164,7 +164,6 @@ const Dashboard = () => {
     const [inviteResult, setInviteResult] = useState(null);
     const [inviting, setInviting]         = useState(false);
     const [inviteSent, setInviteSent]     = useState(false);
-    const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -252,185 +251,145 @@ const Dashboard = () => {
     };
 
     const flatList = buildFlatList(confessions);
+    const confessBreath = confessions.length === 0 && !loading;
 
     return (
-        <div className="dashboard">
-            {/* Header */}
-            <header className="dash-header">
-                <div className="dash-header-left">
-                    <Logo size={26} settled />
-                    {user?.displayAlias && (
-                        <div className="dash-header-alias">{user.displayAlias}</div>
+        <AppShell
+            onConfess={() => setSheetOpen(true)}
+            confessBreath={confessBreath}
+        >
+            <div className="dashboard">
+
+                {/* List */}
+                <div className="dash-list">
+                    {loading ? (
+                        <SkeletonRows />
+                    ) : fetchError ? (
+                        <div className="dash-empty">
+                            <p className="dash-empty-title" style={{ fontSize: '1rem' }}>Could not load</p>
+                            <p className="dash-empty-sub">Check your connection and try again.</p>
+                            <button className="btn-full btn-surface" style={{ marginTop: 20, maxWidth: 180 }} onClick={fetchConfessions}>
+                                Retry
+                            </button>
+                        </div>
+                    ) : confessions.length === 0 ? (
+                        <EmptyState />
+                    ) : (
+                        flatList.map(item =>
+                            item.type === 'header' ? (
+                                <div key={item.key} className="dash-section-label">{item.label}</div>
+                            ) : (
+                                <ConfessionRow
+                                    key={item.key}
+                                    c={item.c}
+                                    index={item.index}
+                                    onClick={() => item.c.state !== 'INVITED' && navigate(`/chat/${item.c.id}`)}
+                                />
+                            )
+                        )
                     )}
                 </div>
-                <div className="dash-header-right">
-                    <button
-                        className="btn-theme"
-                        onClick={toggleTheme}
-                        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                    >
-                        {theme === 'dark' ? 'Light' : 'Dark'}
-                    </button>
-                    <button
-                        className="btn-ghost dash-logout"
-                        onClick={() => setLogoutSheetOpen(true)}
-                        aria-label="Sign out"
-                    >
-                        ↪
-                    </button>
-                </div>
-            </header>
 
-            {/* List */}
-            <div className="dash-list">
-                {loading ? (
-                    <SkeletonRows />
-                ) : fetchError ? (
-                    <div className="dash-empty">
-                        <p className="dash-empty-title" style={{ fontSize: '1rem' }}>Could not load</p>
-                        <p className="dash-empty-sub">Check your connection and try again.</p>
-                        <button className="btn-full btn-surface" style={{ marginTop: 20, maxWidth: 180 }} onClick={fetchConfessions}>
-                            Retry
-                        </button>
+                {/* FAB (mobile only — hidden on desktop via CSS) */}
+                <button
+                    className={`fab${confessBreath ? ' fab--breathe' : ''}`}
+                    onClick={() => setSheetOpen(true)}
+                    aria-label="New confession"
+                >
+                    <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
+                    Confess
+                </button>
+
+                {/* Mutual Crush Overlay */}
+                {mutualConfessionId && (
+                    <MutualCrushOverlay
+                        onDone={() => {
+                            api.post(`/confessions/${mutualConfessionId}/mutual-seen`).catch(() => {});
+                            setMutualConfessionId(null);
+                            navigate(`/chat/${mutualConfessionId}`);
+                        }}
+                    />
+                )}
+
+                {/* Confession sheet */}
+                {sheetOpen && (
+                    <div className="sheet-overlay" onClick={closeSheet}>
+                        <div className="sheet" onClick={e => e.stopPropagation()}>
+                            <div className="sheet-handle" />
+                            <div className="sheet-title">Send a confession</div>
+
+                            <div className="field">
+                                <label>Their Roll Number</label>
+                                <input
+                                    className="field-input"
+                                    placeholder="e.g. 23BAI70503"
+                                    value={targetId}
+                                    onChange={e => setTargetId(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="field">
+                                <label>Icebreaker Message</label>
+                                <input
+                                    className="field-input"
+                                    placeholder="Hey, I noticed you in the library..."
+                                    value={message}
+                                    onChange={e => setMessage(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleSendConfession(e)}
+                                />
+                            </div>
+
+                            {sendError && (
+                                <p className="error-text" style={{ marginBottom: 14 }}>{sendError}</p>
+                            )}
+
+                            {inviteResult ? (
+                                <div className="invite-box">
+                                    <p className="invite-sent" style={{ marginBottom: 6 }}>
+                                        ✓ Confession saved
+                                    </p>
+                                    <p className="invite-msg">
+                                        They're out there living life, completely unaware someone has a crush on them. Want to send them an invite to join Unsaid?
+                                    </p>
+                                    {inviteSent ? (
+                                        <>
+                                            <p className="invite-sent" style={{ marginTop: 10 }}>
+                                                💌 Invite sent to {inviteResult.email}
+                                            </p>
+                                            <button className="btn-full btn-surface" style={{ marginTop: 12 }} onClick={closeSheet}>
+                                                Done
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                                            <button
+                                                className="btn-full btn-accent"
+                                                onClick={handleSendInvite}
+                                                disabled={inviting}
+                                            >
+                                                {inviting ? 'Sending…' : `Invite — ${inviteResult.email}`}
+                                            </button>
+                                            <button className="btn-full btn-surface" onClick={closeSheet}>
+                                                Skip
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <button
+                                    className="btn-full btn-accent"
+                                    onClick={handleSendConfession}
+                                    disabled={sending}
+                                >
+                                    {sending ? 'Sending…' : 'Send Anonymously'}
+                                </button>
+                            )}
+                        </div>
                     </div>
-                ) : confessions.length === 0 ? (
-                    <EmptyState />
-                ) : (
-                    flatList.map(item =>
-                        item.type === 'header' ? (
-                            <div key={item.key} className="dash-section-label">{item.label}</div>
-                        ) : (
-                            <ConfessionRow
-                                key={item.key}
-                                c={item.c}
-                                index={item.index}
-                                onClick={() => item.c.state !== 'INVITED' && navigate(`/chat/${item.c.id}`)}
-                            />
-                        )
-                    )
                 )}
             </div>
-
-            {/* FAB */}
-            <button
-                className={`fab${confessions.length === 0 && !loading ? ' fab--breathe' : ''}`}
-                onClick={() => setSheetOpen(true)}
-                aria-label="New confession"
-            >
-                <span style={{ fontSize: '1rem', lineHeight: 1 }}>✦</span>
-                Confess
-            </button>
-
-            {/* Mutual Crush Overlay */}
-            {mutualConfessionId && (
-                <MutualCrushOverlay
-                    onDone={() => {
-                        api.post(`/confessions/${mutualConfessionId}/mutual-seen`).catch(() => {});
-                        setMutualConfessionId(null);
-                        navigate(`/chat/${mutualConfessionId}`);
-                    }}
-                />
-            )}
-
-            <TabBar active="inbox" />
-
-            {/* Logout Confirmation Sheet */}
-            {logoutSheetOpen && (
-                <div className="sheet-overlay" onClick={() => setLogoutSheetOpen(false)}>
-                    <div className="sheet" onClick={e => e.stopPropagation()}>
-                        <div className="sheet-handle" />
-                        <div className="sheet-title">Sign out?</div>
-                        <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-                            You'll need your college email to get back in.
-                        </p>
-                        <button className="btn-full btn-danger" onClick={logout}>
-                            Sign out
-                        </button>
-                        <button className="btn-full btn-surface" style={{ marginTop: 10 }} onClick={() => setLogoutSheetOpen(false)}>
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Bottom Sheet */}
-            {sheetOpen && (
-                <div className="sheet-overlay" onClick={closeSheet}>
-                    <div className="sheet" onClick={e => e.stopPropagation()}>
-                        <div className="sheet-handle" />
-                        <div className="sheet-title">Send a confession</div>
-
-                        <div className="field">
-                            <label>Their Roll Number</label>
-                            <input
-                                className="field-input"
-                                placeholder="e.g. 23BAI70503"
-                                value={targetId}
-                                onChange={e => setTargetId(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="field">
-                            <label>Icebreaker Message</label>
-                            <input
-                                className="field-input"
-                                placeholder="Hey, I noticed you in the library..."
-                                value={message}
-                                onChange={e => setMessage(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleSendConfession(e)}
-                            />
-                        </div>
-
-                        {sendError && (
-                            <p className="error-text" style={{ marginBottom: 14 }}>{sendError}</p>
-                        )}
-
-                        {inviteResult ? (
-                            <div className="invite-box">
-                                <p className="invite-sent" style={{ marginBottom: 6 }}>
-                                    ✓ Confession saved
-                                </p>
-                                <p className="invite-msg">
-                                    They're out there living life, completely unaware someone has a crush on them. Want to send them an invite to join Unsaid?
-                                </p>
-                                {inviteSent ? (
-                                    <>
-                                        <p className="invite-sent" style={{ marginTop: 10 }}>
-                                            💌 Invite sent to {inviteResult.email}
-                                        </p>
-                                        <button className="btn-full btn-surface" style={{ marginTop: 12 }} onClick={closeSheet}>
-                                            Done
-                                        </button>
-                                    </>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                                        <button
-                                            className="btn-full btn-accent"
-                                            onClick={handleSendInvite}
-                                            disabled={inviting}
-                                        >
-                                            {inviting ? 'Sending…' : `Invite — ${inviteResult.email}`}
-                                        </button>
-                                        <button className="btn-full btn-surface" onClick={closeSheet}>
-                                            Skip
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <button
-                                className="btn-full btn-accent"
-                                onClick={handleSendConfession}
-                                disabled={sending}
-                            >
-                                {sending ? 'Sending…' : 'Send Anonymously'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
+        </AppShell>
     );
 };
 
