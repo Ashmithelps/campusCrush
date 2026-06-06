@@ -44,6 +44,7 @@ public class PublicConfessionReport {
     @Column(length = 100)
     private String reason;
 
+    @Column(nullable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
 }
