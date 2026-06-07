@@ -18,10 +18,10 @@ Key tokens: `--bg`, `--surface`, `--surface-2`, `--text`, `--text-2`, `--text-3`
 
 **Shared components**:
 - `<Logo size={N} settled />` — SVG three-dot wordmark, terracotta. Use everywhere.
+- `<ThemeToggle className="..." />` — extracted component, wraps `useTheme`. Use instead of inline toggle buttons.
 - `<HeartLoader />` — spinner, use sparingly (prefer skeletons).
 - `<MutualCrushOverlay />` — full-screen mutual crush celebration.
 - `<SegmentedInput />` — 6-box OTP input with paste/keyboard/a11y.
-- `<TabBar active="inbox"|"feed" />` — fixed bottom nav (Inbox / Feed). Present on Dashboard and Feed pages.
 
 **Animation config**:
 - `--splash-ease: cubic-bezier(0.16, 1, 0.3, 1)` — primary easing
@@ -42,18 +42,40 @@ Key tokens: `--bg`, `--surface`, `--surface-2`, `--text`, `--text-2`, `--text-3`
 
 ---
 
+## Layout shells
+
+### `AuthShell` (`src/layouts/AuthShell.jsx`)
+Wraps all pre-auth screens. Renders: SVG noise grain, glow, vignette atmosphere + `<ThemeToggle>`.
+- Single `auth-noise` SVG filter ID — safe because auth screens never render simultaneously.
+- Back buttons and entrance-animation classes stay in each page component (they need per-page `show` state).
+- Usage: `<AuthShell pageClass="splash-page">` / `<AuthShell>` (default `rg-page`) / `<AuthShell pageClass={`rg-page${exiting ? ' vf-page--out' : ''}`}>`
+
+### `AppShell` (`src/layouts/AppShell.jsx`)
+Wraps authenticated screens (Dashboard, Feed). **Chat is NOT wrapped** — it has a unique detail-view header.
+- Desktop (≥768px): 220px left sidebar with Logo + alias, Inbox/Feed nav, Confess button, ThemeToggle + logout at bottom.
+- Mobile: fixed header (Logo + alias + ThemeToggle + logout) + fixed bottom tab bar.
+- FAB hidden on desktop via `display: none !important`. Sidebar Confess button calls `onConfess` prop instead.
+- Logout confirmation sheet lives inside AppShell (moved from Dashboard).
+- Alias display uses `font-family: var(--font-serif)` italic in both sidebar and mobile header.
+- Reroll button (↻) next to alias — calls `rerollAlias()` from AuthContext, throttled to one in-flight request.
+- Props: `onConfess` (opens confess sheet), `confessBreath` (breathe animation on sidebar button).
+- CSS structure: `.app-shell` → `.app-sidebar` (desktop) + `.app-header` (mobile) + `.app-content` + `.app-tab-bar` (mobile).
+- On desktop: `.app-content` is `overflow-y: auto`, page containers use `height: auto`. On mobile: `.app-content` is `overflow: hidden`, inner lists scroll.
+
+---
+
 ## Routes & components
 
-| Route | Component | Notes |
-|---|---|---|
-| `/` | `Splash` | Landing, entrance animation |
-| `/auth` | `AuthChoice` | Login vs Register choice |
-| `/login` | `Login` | Email only, navigates to `/verify` |
-| `/register` | `Register` | Email only, navigates to `/verify` |
-| `/verify` | `Verify` | Shared OTP screen; gets `{email, flow}` from `location.state` |
-| `/dashboard` | `Dashboard` | Inbox — all confession threads. Has TabBar + FAB. |
-| `/feed` | `Feed` | Public confession feed. Has TabBar + FAB. |
-| `/chat/:confessionId` | `Chat` | Thread view with reveal guessing game panels. |
+| Route | Component | Shell | Notes |
+|---|---|---|---|
+| `/` | `Splash` | `AuthShell pageClass="splash-page"` | Landing, entrance animation |
+| `/auth` | `AuthChoice` | `AuthShell pageClass="ac-page"` | Login vs Register choice |
+| `/login` | `Login` | `AuthShell` | Email only, navigates to `/verify` |
+| `/register` | `Register` | `AuthShell` | Email only, navigates to `/verify` |
+| `/verify` | `Verify` | `AuthShell pageClass="rg-page[vf-page--out]"` | Shared OTP screen; gets `{email, flow}` from `location.state` |
+| `/dashboard` | `Dashboard` | `AppShell` | Inbox — all confession threads. FAB opens confess sheet. |
+| `/feed` | `Feed` | `AppShell` | Public confession feed. FAB opens compose sheet. |
+| `/chat/:confessionId` | `Chat` | none (standalone) | Thread view with reveal guessing game panels. |
 
 `ProtectedRoute` → redirects to `/login` if not authed.
 `PublicRoute` → redirects to `/dashboard` if already authed.
@@ -70,6 +92,41 @@ Passwordless OTP. Flow:
 Only `@cuchd.in` emails accepted. Validation regex: `/^[a-zA-Z0-9]{4,20}@cuchd\.in$/i` — lives in `src/utils/auth.js`.
 
 OTP rate limits (backend): 60s resend cooldown, 5-attempt brute-force lockout (15 min).
+OTP fields (`otp_code`, `otp_expiry`, `otp_attempts`, `otp_locked_until`) are columns on the `users` table — there is NO separate `otps` table.
+
+**`AuthContext` methods**: `login`, `register`, `verifyOtp`, `logout`, `rerollAlias`.
+`rerollAlias()` calls `POST /api/me/reroll-alias` and updates `user.displayAlias` in place.
+
+---
+
+## Pseudonym system
+
+Aliases are two literary English words — one evocative adjective + one abstract/natural noun (e.g. "Velvet Tide", "Hollow Shore").
+
+**Generator**: `../campuscrush/.../alias/AliasGenerator.java`
+- 72 adjectives × 72 nouns = **5,184 base combinations**
+- Application-level collision detection via `userRepository.existsByDisplayAlias()`
+- Numeric suffix (` 2`…` 999`) on collision; timestamp fallback (effectively unreachable)
+- No DB unique constraint on `display_alias` — app-level is sufficient
+
+**Migration**: `AliasMigrationRunner.java` (`@PostConstruct`)
+- On every startup, regex-matches old "Color Animal" aliases (Blue/Red/…Panda/Fox/…)
+- Reassigns matching users to new curated aliases
+- Self-healing: exits immediately once no old-scheme aliases remain
+
+**Reroll endpoint**: `POST /api/me/reroll-alias` (auth required) → `{ "alias": "…" }`
+- Regenerates alias for the authenticated user
+- Frontend calls via `rerollAlias()` in AuthContext; ↻ button in AppShell header/sidebar
+
+**Display**: alias renders in `var(--font-serif)` italic everywhere:
+- `.app-sidebar-alias` (desktop sidebar)
+- `.dash-header-alias` (mobile header)
+- Confession cards and chat header use the alias value from API responses
+
+**Alias in data flow**:
+- Sender always sees receiver's roll number
+- Receiver sees sender's `displayAlias` until reveal
+- After reveal (`isRevealed = true`), backend returns sender's roll as `otherUserAlias`
 
 ---
 
@@ -89,11 +146,6 @@ OTP rate limits (backend): 60s resend cooldown, 5-attempt brute-force lockout (1
 - `BLOCKED`: either party blocked
 
 **isBlocker** (boolean on ConfessionResponse): true only for the user who initiated the block. Only the blocker sees the Unblock button. The blocked non-initiating user sees the blocked banner only.
-
-**Alias logic**:
-- Sender always sees receiver's roll number (e.g. "23BAI70503")
-- Receiver sees sender's `displayAlias` (e.g. "Golden Viper") until identity is revealed
-- After reveal (`isRevealed = true`), receiver also sees sender's roll number — backend returns it as `otherUserAlias`
 
 **MessageResponse** (from `/api/messages/:id`):
 ```
@@ -148,11 +200,14 @@ GET    /api/feed                              unseen-first feed (20 items, 24h e
 POST   /api/feed                              { content } → post anonymously
 POST   /api/feed/:id/view                     record view (fire-and-forget, 204)
 POST   /api/feed/:id/report                   { reason } → report (204)
+
+GET    /api/me                                { publicId, displayAlias, rollNumber }
+POST   /api/me/reroll-alias                   regenerate alias → { alias }
 ```
 
 **Reveal is two-path**:
-1. Manual: sender taps "Reveal yourself" → `POST /reveal` → REVEAL system message in chat
-2. Guessing: receiver submits roll → `POST /guess` → on correct, backend creates REVEAL message + pushes WebSocket events to both parties
+1. Manual: sender taps "Reveal yourself" → `POST /reveal` → system message `"✦ The mask comes off — <roll>"`
+2. Guessing: receiver submits roll → `POST /guess` → on correct, system message `"✦ <roll> — the mask comes off"` + WebSocket REVEALED event
 
 `REVEALED` (ConfessionState) = mutual crush — completely separate from identity reveal (`isRevealed` boolean).
 
@@ -209,6 +264,11 @@ Three inline sub-components rendered in `.reveal-panels` between `.chat-messages
 - Kit must have all 3 hints filled AND `guessingEnabled = true` for receiver to see the panel
 - Guess validated ONLY against that one sender's roll number — never a global lookup
 
+**`runAction` (block/reveal/unblock/reply)**:
+- Sets `actionLoading`, awaits the API call, then `fetchAll()`
+- On failure: sets `actionError` state — displayed inside the confirmation sheet
+- `actionError` is cleared when sheet closes
+
 ---
 
 ## Public Feed (Feed.jsx)
@@ -223,6 +283,8 @@ Framer Motion swipe deck. Cards render in reverse DOM order so top card is last 
 
 **View recording**: fired fire-and-forget on swipe (`POST /feed/:id/view`). Uses `INSERT ... ON CONFLICT DO NOTHING` — only increments `viewCount` when the row is newly inserted (atomic, idempotent).
 
+**Report**: card is dismissed regardless of whether the API call succeeds — user shouldn't need to retry a moderation action.
+
 **EndState**: only shown when server returns 0 items (no posts exist). Not shown just from swiping.
 
 ---
@@ -230,6 +292,7 @@ Framer Motion swipe deck. Cards render in reverse DOM order so top card is last 
 ## CSS class conventions
 
 **Auth screens** — prefix: `rg-` (register), `lg-` (login), `vf-` (verify), `ac-` (auth choice), `splash-`
+**AppShell** — prefix: `app-shell`, `app-sidebar`, `app-header`, `app-content`, `app-tab-bar`, `app-sidebar-*`, `app-alias-row`, `app-reroll-btn`
 **Dashboard** — prefix: `dash-`, `conf-card`, `conf-avatar`, `skel-`, `fab`
 **Chat** — prefix: `chat-`
 **Feed** — prefix: `feed-`
@@ -249,22 +312,36 @@ Key feed classes: `.feed-page`, `.feed-deck-area`, `.feed-deck`, `.feed-card`, `
 
 ---
 
-## Backend schema (DB migrations required before deploy)
+## Backend schema
 
-Two manual SQL migrations live in `../campuscrush/src/main/resources/`:
+Tables in Supabase PostgreSQL:
 
-**`feed_migration.sql`** — 4 tables:
+**Core** (created by Hibernate on first run with `DDL_AUTO=create`):
+- `users` (id, public_id UUID unique, roll_number unique, email, display_alias, otp_code, otp_expiry, otp_attempts, otp_locked_until, created_at) — OTP fields are columns here, no separate table
+- `confessions` (id, sender_id→users, receiver_id→users, icebreaker_message, state, is_revealed, show_mutual_animation, created_at)
+- `messages` (id, confession_id→confessions, sender_id→users, content, type, sent_at)
+
+**`feed_migration.sql`** — run manually:
 - `public_confessions` (id, author_id→users, content, campus_tag, status, view_count, report_count, created_at)
-- `public_confession_views` (confession_id, viewer_id — PK composite, ON CONFLICT DO NOTHING)
+- `public_confession_views` (confession_id, viewer_id — PK composite)
 - `public_confession_reports` (id, confession_id, reporter_id, reason, created_at)
 - `user_blocks` (blocker_id, blocked_id — PK composite)
 
-**`reveal_migration.sql`** — 3 tables:
+**`reveal_migration.sql`** — run manually:
 - `reveal_kits` (id, user_id→users UNIQUE, hint1/2/3 VARCHAR(200) nullable, guessing_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at, updated_at)
 - `reveal_states` (id, confession_id→confessions UNIQUE, status VARCHAR(25) NOT NULL DEFAULT 'HIDDEN', guesses_remaining INT NOT NULL DEFAULT 3, hints_unlocked INT NOT NULL DEFAULT 1, locked_until TIMESTAMPTZ nullable, created_at)
 - `reveal_guesses` (id, confession_id→confessions, guessed_roll VARCHAR(50), correct BOOLEAN, guessed_at)
 
 **DDL rule**: every `NOT NULL` DB column needs `@Column(nullable = false)` or `@JoinColumn(nullable = false)` on the entity. Missing annotations cause startup failure with `DDL_AUTO=validate`.
+
+**Clear database (fresh start)**:
+```sql
+TRUNCATE TABLE
+  reveal_guesses, reveal_states, reveal_kits,
+  public_confession_reports, public_confession_views, public_confessions,
+  user_blocks, messages, confessions, users
+RESTART IDENTITY CASCADE;
+```
 
 ---
 
@@ -272,8 +349,8 @@ Two manual SQL migrations live in `../campuscrush/src/main/resources/`:
 
 - `DDL_AUTO=validate` — schema must match entities exactly. Never add columns without a migration.
 - `server.error.include-message=never` — no error details leak to clients.
-- `jwt.secret=${JWT_SECRET}` — no hardcoded fallback.
-- CORS allowed: `https://campusfrontend*.vercel.app`, `https://campuscrush*.vercel.app`, `http://localhost:*`
+- `jwt.secret=${JWT_SECRET}` — no hardcoded fallback. Startup fails if unset.
+- CORS allowed: `https://campusfrontend*.vercel.app`, `https://campuscrush*.vercel.app` only. `http://localhost:*` was removed before launch.
 - WebSocket: `convertAndSendToUser` only — no public topic broadcasts.
 - `author_id` from `public_confessions` NEVER returned to clients.
 - Guess validation runs ONLY against the one sender's roll — never a global "who is this anon" lookup.
@@ -293,3 +370,10 @@ Two manual SQL migrations live in `../campuscrush/src/main/resources/`:
 - Optimistic sends: push temp message with `id: temp-${Date.now()}`, server echoes via socket and `fetchMessages()` replaces it.
 - Native SQL queries in Spring Data JPA: use `Pageable` for LIMIT (not `:lim` named param — Hibernate 6 won't bind it). Bulk DELETE across relations must use native SQL subqueries, not JPQL navigation paths.
 - Scheduled cleanup (`@Scheduled`): requires `@EnableScheduling` on the main application class. Delete child rows before parent rows when no `ON DELETE CASCADE` on FKs.
+
+---
+
+## Post-launch backlog
+
+- **Rate limiting** for confession sends and chat messages — not yet implemented. High priority once real users onboard.
+- **Error banners** for `fetchAll()` failure in Chat and report failure in Feed — currently silent (load failure shows error state, action failures show in sheet).
