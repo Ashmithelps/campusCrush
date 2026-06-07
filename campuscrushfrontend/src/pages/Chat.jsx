@@ -352,6 +352,7 @@ const Chat = () => {
     const [sheetOpen,   setSheetOpen]   = useState(false);
     const [confirmAction, setConfirmAction] = useState(null); // 'block' | 'decline' | 'reveal' | 'unblock'
     const [actionLoading, setActionLoading] = useState(false);
+    const [actionError,   setActionError]   = useState('');
     const [showMutual,  setShowMutual]  = useState(false);
     const [atBottom,    setAtBottom]    = useState(true);
 
@@ -480,12 +481,13 @@ const Chat = () => {
 
     const runAction = async (fn) => {
         setActionLoading(true);
+        setActionError('');
         try {
             await fn();
             setConfirmAction(null);
             await fetchAll();
         } catch {
-            // action failed silently
+            setActionError('Something went wrong — please try again.');
         } finally {
             setActionLoading(false);
         }
@@ -770,7 +772,7 @@ const Chat = () => {
 
             {/* ── Confirm sheet ── */}
             {confirmAction && (
-                <div className="sheet-overlay" onClick={() => !actionLoading && setConfirmAction(null)}>
+                <div className="sheet-overlay" onClick={() => { if (!actionLoading) { setConfirmAction(null); setActionError(''); } }}>
                     <div
                         className="sheet"
                         role="alertdialog"
@@ -860,6 +862,12 @@ const Chat = () => {
                                     </button>
                                 </div>
                             </>
+                        )}
+
+                        {actionError && (
+                            <p role="alert" style={{ color: 'var(--accent)', fontSize: '0.82rem', marginTop: 10, textAlign: 'center' }}>
+                                {actionError}
+                            </p>
                         )}
                     </div>
                 </div>
