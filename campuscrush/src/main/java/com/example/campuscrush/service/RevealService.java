@@ -208,7 +208,7 @@ public class RevealService {
             confession.setIsRevealed(true);
             confessionRepo.save(confession);
 
-            String content = "✦ " + senderRoll + " — identity revealed";
+            String content = "✦ " + senderRoll + " — the mask comes off";
             messageRepo.save(Message.builder()
                 .confession(confession)
                 .sender(confession.getSender())

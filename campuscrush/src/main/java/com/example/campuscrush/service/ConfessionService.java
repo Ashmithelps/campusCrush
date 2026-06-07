@@ -460,7 +460,7 @@ public void markAsRead(Long confessionId, User user) {
 
         // 4. Create System Message
         String rollNumber = sender.getRollNumber() != null ? sender.getRollNumber() : sender.getPublicId().toString();
-        String content = "Identity Revealed! 🎭 The sender is " + rollNumber;
+        String content = "✦ The mask comes off — " + rollNumber;
 
         com.example.campuscrush.entity.message.Message systemArgs = com.example.campuscrush.entity.message.Message.builder()
                 .confession(confession)
