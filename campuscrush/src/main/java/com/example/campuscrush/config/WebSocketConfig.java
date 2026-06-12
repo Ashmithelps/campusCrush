@@ -28,7 +28,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(
                     "https://campusfrontend*.vercel.app",
-                    "https://campuscrush*.vercel.app"
+                    "https://campuscrush*.vercel.app",
+                    "https://say-the-unsaid.vercel.app"
                 );
     }
 
