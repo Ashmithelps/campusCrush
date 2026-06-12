@@ -19,20 +19,44 @@ public class EmailService {
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
+    private static final String SHELL_OPEN =
+        "<div style='font-family:Georgia,serif;max-width:480px;margin:0 auto;"
+        + "background:#1C1814;border-radius:12px;padding:48px 36px;'>"
+        + "<p style='font-family:Georgia,serif;font-size:22px;color:#C4622D;"
+        + "margin:0 0 36px;letter-spacing:0.06em;font-weight:600;'>Unsaid</p>";
+
+    private static final String FOOTER =
+        "<hr style='border:none;border-top:1px solid #2E2A26;margin:32px 0 20px;'/>"
+        + "<p style='font-family:system-ui,Arial,sans-serif;font-size:11px;color:#4A4542;"
+        + "line-height:1.5;margin:0;'>"
+        + "You&#39;re receiving this because you&#39;re a student at CU Chandigarh. &middot; Unsaid</p>"
+        + "</div>";
+
     /* =========================
        OTP EMAIL
        ========================= */
     public void sendOtp(String to, String otp) {
-        String body = "{\"sender\":{\"name\":\"CampusCrush\",\"email\":\"" + fromEmail + "\"},"
+        String html = SHELL_OPEN
+            + "<h2 style='font-family:Georgia,serif;font-size:20px;font-weight:600;"
+            + "color:#F4EFE6;margin:0 0 24px;line-height:1.4;'>Your sign-in code</h2>"
+            + "<p style='font-family:monospace,Courier New,monospace;font-size:30px;"
+            + "letter-spacing:0.25em;color:#F4EFE6;background:#2E2A26;padding:20px 24px;"
+            + "border-radius:8px;text-align:center;margin:0 0 16px;'>" + otp + "</p>"
+            + "<p style='font-family:system-ui,Arial,sans-serif;font-size:13px;"
+            + "color:#4A4542;margin:0;'>"
+            + "Expires in 5 minutes. If you didn&#39;t request this, you can ignore it.</p>"
+            + FOOTER;
+
+        String body = "{\"sender\":{\"name\":\"Unsaid\",\"email\":\"" + fromEmail + "\"},"
             + "\"to\":[{\"email\":\"" + to + "\"}],"
-            + "\"subject\":\"Your CampusCrush login code\","
-            + "\"textContent\":\"Your login code is: " + otp + "\\n\\nThis code expires in 5 minutes.\\n\\n— CampusCrush\"}";
+            + "\"subject\":\"Your Unsaid sign-in code\","
+            + "\"textContent\":\"Your sign-in code is: " + otp + "\\n\\nExpires in 5 minutes.\\n\\n— Unsaid\","
+            + "\"htmlContent\":\"" + html.replace("\"", "\\\"") + "\"}";
 
         try {
             restTemplate.postForEntity(BREVO_URL, buildRequest(body), String.class);
-            System.out.println("✅ OTP sent to " + to);
         } catch (Exception e) {
-            System.err.println("❌ Failed to send OTP: " + e.getMessage());
+            System.err.println("Failed to send OTP: " + e.getMessage());
         }
     }
 
@@ -40,32 +64,30 @@ public class EmailService {
        CONFESSION NOTIFICATION
        ========================= */
     public void sendConfessionNotification(String toEmail) {
-        String text = "Someone on your campus sent you an anonymous confession on CampusCrush. "
-                    + "Open the app to read it and decide whether to accept or decline.";
+        String text = "Someone at your campus has something to say — anonymously. "
+                    + "Open Unsaid to read it. You can accept or let it pass.";
 
-        String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;"
-                    + "padding:40px 28px;background:#121212;border-radius:12px'>"
-                    + "<p style='font-size:20px;font-weight:800;color:#FF2D55;margin:0 0 24px'>"
-                    + "campuscrush</p>"
-                    + "<h2 style='font-size:22px;font-weight:700;color:#ffffff;margin:0 0 14px'>"
-                    + "You have a secret admirer &#128140;</h2>"
-                    + "<p style='color:#A7A7A7;font-size:15px;line-height:1.65;margin:0 0 28px'>"
-                    + text + "</p>"
-                    + "<p style='color:#4A4A4A;font-size:12px;margin:0'>"
-                    + "Their identity stays hidden until they choose to reveal it.</p>"
-                    + "</div>";
+        String html = SHELL_OPEN
+            + "<h2 style='font-family:Georgia,serif;font-size:20px;font-weight:600;"
+            + "color:#F4EFE6;margin:0 0 16px;line-height:1.4;'>"
+            + "Someone left something unsaid for you.</h2>"
+            + "<p style='font-family:system-ui,Arial,sans-serif;font-size:15px;"
+            + "color:#A99B8E;line-height:1.7;margin:0 0 28px;'>" + text + "</p>"
+            + "<p style='font-family:system-ui,Arial,sans-serif;font-size:12px;"
+            + "color:#4A4542;margin:0;'>"
+            + "Their identity stays hidden until they choose to reveal it.</p>"
+            + FOOTER;
 
-        String body = "{\"sender\":{\"name\":\"CampusCrush\",\"email\":\"" + fromEmail + "\"},"
+        String body = "{\"sender\":{\"name\":\"Unsaid\",\"email\":\"" + fromEmail + "\"},"
             + "\"to\":[{\"email\":\"" + toEmail + "\"}],"
-            + "\"subject\":\"Someone has a crush on you \\uD83D\\uDC8C\","
+            + "\"subject\":\"Someone left something unsaid for you.\","
             + "\"textContent\":\"" + text + "\","
             + "\"htmlContent\":\"" + html.replace("\"", "\\\"") + "\"}";
 
         try {
             restTemplate.postForEntity(BREVO_URL, buildRequest(body), String.class);
-            System.out.println("✅ Confession notification sent to " + toEmail);
         } catch (Exception e) {
-            System.err.println("❌ Failed to send confession notification: " + e.getMessage());
+            System.err.println("Failed to send confession notification: " + e.getMessage());
         }
     }
 
@@ -73,38 +95,39 @@ public class EmailService {
        INVITE EMAIL
        ========================= */
     public void sendInvite(String toEmail) {
-        String text = "Someone on your campus has a crush on you — but they can't reach you yet "
-                    + "because you haven't joined CampusCrush. "
-                    + "Sign up anonymously and find out who it is.";
+        String text = "Someone at CU Chandigarh left you an anonymous message — "
+                    + "but you’re not on Unsaid yet, so it’s waiting. "
+                    + "Step in to find out what was left unsaid: https://say-the-unsaid.vercel.app";
 
-        String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;"
-                    + "padding:40px 28px;background:#121212;border-radius:12px'>"
-                    + "<p style='font-size:20px;font-weight:800;color:#FF2D55;margin:0 0 24px'>"
-                    + "campuscrush</p>"
-                    + "<h2 style='font-size:22px;font-weight:700;color:#ffffff;margin:0 0 14px'>"
-                    + "Someone out there has a crush on you &#128140;</h2>"
-                    + "<p style='color:#A7A7A7;font-size:15px;line-height:1.65;margin:0 0 28px'>"
-                    + "They&apos;re out there living life, completely unaware that you&apos;re unaware of them. "
-                    + "Join CampusCrush — anonymous confessions, no awkwardness.</p>"
-                    + "<a href='https://campuscrush.vercel.app' "
-                    + "style='display:inline-block;background:#FF2D55;color:#fff;font-weight:700;"
-                    + "font-size:15px;padding:14px 28px;border-radius:100px;text-decoration:none;margin-bottom:28px'>"
-                    + "Join CampusCrush</a>"
-                    + "<p style='color:#4A4A4A;font-size:12px;margin:0'>"
-                    + "Their identity stays hidden until they choose to reveal it.</p>"
-                    + "</div>";
+        String html = SHELL_OPEN
+            + "<h2 style='font-family:Georgia,serif;font-size:20px;font-weight:600;"
+            + "color:#F4EFE6;margin:0 0 16px;line-height:1.4;'>"
+            + "Someone on your campus has something to say.</h2>"
+            + "<p style='font-family:system-ui,Arial,sans-serif;font-size:15px;"
+            + "color:#A99B8E;line-height:1.7;margin:0 0 28px;'>"
+            + "Someone at CU Chandigarh left you an anonymous message &#8212; "
+            + "but you&#39;re not on Unsaid yet, so it&#39;s waiting. "
+            + "Step in to find out what was left unsaid.</p>"
+            + "<a href='https://say-the-unsaid.vercel.app' "
+            + "style='display:inline-block;background:#C4622D;color:#F4EFE6;"
+            + "font-family:system-ui,Arial,sans-serif;font-size:15px;font-weight:600;"
+            + "padding:14px 28px;border-radius:100px;text-decoration:none;margin-bottom:28px;'>"
+            + "Step in</a>"
+            + "<p style='font-family:system-ui,Arial,sans-serif;font-size:12px;"
+            + "color:#4A4542;margin:0;'>"
+            + "Their identity stays hidden until they choose to reveal it.</p>"
+            + FOOTER;
 
-        String body = "{\"sender\":{\"name\":\"CampusCrush\",\"email\":\"" + fromEmail + "\"},"
+        String body = "{\"sender\":{\"name\":\"Unsaid\",\"email\":\"" + fromEmail + "\"},"
             + "\"to\":[{\"email\":\"" + toEmail + "\"}],"
-            + "\"subject\":\"Someone has a crush on you — join CampusCrush to find out who \\uD83D\\uDC8C\","
+            + "\"subject\":\"Someone on your campus has something to say.\","
             + "\"textContent\":\"" + text + "\","
             + "\"htmlContent\":\"" + html.replace("\"", "\\\"") + "\"}";
 
         try {
             restTemplate.postForEntity(BREVO_URL, buildRequest(body), String.class);
-            System.out.println("✅ Invite sent to " + toEmail);
         } catch (Exception e) {
-            System.err.println("❌ Failed to send invite: " + e.getMessage());
+            System.err.println("Failed to send invite: " + e.getMessage());
         }
     }
 

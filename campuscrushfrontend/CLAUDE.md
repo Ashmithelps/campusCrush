@@ -347,7 +347,7 @@ RESTART IDENTITY CASCADE;
 - `DDL_AUTO=validate` — schema must match entities exactly. Never add columns without a migration.
 - `server.error.include-message=never` — no error details leak to clients.
 - `jwt.secret=${JWT_SECRET}` — no hardcoded fallback. Startup fails if unset.
-- CORS allowed: `https://campusfrontend*.vercel.app`, `https://campuscrush*.vercel.app` only. `http://localhost:*` was removed before launch.
+- CORS allowed: `https://campusfrontend*.vercel.app`, `https://campuscrush*.vercel.app`, `https://say-the-unsaid.vercel.app` only — configured in BOTH `SecurityConfig` (HTTP) and `WebSocketConfig` (WS handshake); always update both. `http://localhost:*` was removed before launch.
 - WebSocket: `convertAndSendToUser` only — no public topic broadcasts.
 - `author_id` from `public_confessions` NEVER returned to clients.
 - Guess validation runs ONLY against the one sender's roll — never a global "who is this anon" lookup.
