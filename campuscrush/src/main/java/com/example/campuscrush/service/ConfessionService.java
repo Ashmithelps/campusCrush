@@ -24,6 +24,30 @@ public class ConfessionService {
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService;
 
+    public static final int CONFESSIONS_PER_HOUR_LIMIT = 5;
+
+    private void enforceConfessionRateLimit(User sender) {
+        long recentCount = confessionRepository.countBySenderSince(
+            sender, Instant.now().minusSeconds(3600)
+        );
+        if (recentCount >= CONFESSIONS_PER_HOUR_LIMIT) {
+            throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS, "You can only send 5 confessions per hour"
+            );
+        }
+    }
+
+    private void enforceMessageRateLimit(User sender) {
+        long recentMessages = messageRepository.countBySenderSince(
+            sender, Instant.now().minusSeconds(60)
+        );
+        if (recentMessages >= MessageService.MESSAGES_PER_MINUTE_LIMIT) {
+            throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS, "You're sending messages too quickly. Slow down."
+            );
+        }
+    }
+
     @Transactional
     public Confession createInvitedConfession(User sender, String receiverRollNumber, String message) {
         if (message == null || message.isBlank()) {
@@ -37,6 +61,7 @@ public class ConfessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "You've already sent an invite to this person. We'll notify you when they join.");
         }
+        enforceConfessionRateLimit(sender);
 
         Confession confession = Confession.builder()
                 .sender(sender)
@@ -200,15 +225,6 @@ public class ConfessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message too long (max 500 characters)");
         }
 
-        long recentCount = confessionRepository.countBySenderSince(
-            sender, Instant.now().minusSeconds(3600)
-        );
-        if (recentCount >= 5) {
-            throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS, "You can only send 5 confessions per hour"
-            );
-        }
-
         java.util.Optional<Confession> existing =
             confessionRepository.findFirstBySenderAndReceiverAndStateIn(
                 sender,
@@ -217,6 +233,9 @@ public class ConfessionService {
             );
 
         if (existing.isPresent()) {
+            // Duplicate confession lands as a chat message — limit it like one,
+            // since it never increments the hourly confession count.
+            enforceMessageRateLimit(sender);
             Confession confession = existing.get();
             com.example.campuscrush.entity.message.Message extra =
                 com.example.campuscrush.entity.message.Message.builder()
@@ -240,6 +259,8 @@ public class ConfessionService {
             }
             return;
         }
+
+        enforceConfessionRateLimit(sender);
 
         Confession confession = Confession.builder()
                 .sender(sender)

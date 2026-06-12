@@ -373,7 +373,16 @@ RESTART IDENTITY CASCADE;
 
 ---
 
+## Rate limits
+
+- **Confessions**: 5/hour per sender (`ConfessionService.CONFESSIONS_PER_HOUR_LIMIT`) — applies to new confessions AND invited confessions (unregistered roll numbers).
+- **Chat messages**: 20/minute per sender (`MessageService.MESSAGES_PER_MINUTE_LIMIT`) — applies to WebSocket sends and the duplicate-confession append-as-message path.
+- Mutual-crush path is NOT rate limited (once per pair, reveal must never be blocked).
+- Backend strips error messages (`include-message=never`), so the frontend shows its own copy on 429 (confess sheet in Dashboard.jsx; guess lockout in Chat.jsx).
+- Chat 429s over WebSocket are silently dropped client-side (same as other socket errors).
+
+---
+
 ## Post-launch backlog
 
-- **Rate limiting** for confession sends and chat messages — not yet implemented. High priority once real users onboard.
 - **Error banners** for `fetchAll()` failure in Chat and report failure in Feed — currently silent (load failure shows error state, action failures show in sheet).

@@ -223,7 +223,11 @@ const Dashboard = () => {
                 fetchConfessions();
             }
         } catch (err) {
-            setSendError(apiError(err, 'Failed to send confession.'));
+            if (err?.response?.status === 429) {
+                setSendError("Slow down — you've hit the sending limit. Try again in a bit.");
+            } else {
+                setSendError(apiError(err, 'Failed to send confession.'));
+            }
         } finally {
             setSending(false);
         }

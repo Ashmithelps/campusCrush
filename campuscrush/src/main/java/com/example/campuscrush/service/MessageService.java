@@ -25,6 +25,8 @@ public class MessageService {
     private final ConfessionRepository confessionRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
+    public static final int MESSAGES_PER_MINUTE_LIMIT = 20;
+
     /* =========================
        SEND MESSAGE
        ========================= */
@@ -48,6 +50,14 @@ public class MessageService {
         // Shadowban → silently drop
         if (sender.isShadowBanned()) {
             return null;
+        }
+
+        long recentMessages = messageRepository.countBySenderSince(
+                sender, java.time.Instant.now().minusSeconds(60));
+        if (recentMessages >= MESSAGES_PER_MINUTE_LIMIT) {
+            throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS, "You're sending messages too quickly. Slow down."
+            );
         }
 
         Message message = Message.builder()
