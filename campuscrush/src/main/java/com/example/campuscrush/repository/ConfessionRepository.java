@@ -38,4 +38,23 @@ public interface ConfessionRepository
 
     @Query("SELECT MAX(c.lastInviteSentAt) FROM Confession c WHERE c.receiverRollNumber = :rollNumber AND c.lastInviteSentAt IS NOT NULL")
     java.util.Optional<java.time.Instant> findLatestInviteSentAtForRollNumber(@Param("rollNumber") String rollNumber);
+
+    // Mask uniqueness is scoped to one viewer's inbox — never campus-wide
+    boolean existsByReceiverAndSenderAlias(User receiver, String senderAlias);
+
+    boolean existsByReceiverRollNumberAndSenderAlias(String receiverRollNumber, String senderAlias);
+
+    List<Confession> findBySenderAliasIsNull();
+
+    @Query("SELECT COUNT(c) > 0 FROM Confession c WHERE c.state = com.example.campuscrush.entity.confession.ConfessionState.BLOCKED " +
+           "AND ((c.sender = :a AND c.receiver = :b) OR (c.sender = :b AND c.receiver = :a))")
+    boolean existsBlockedBetween(@Param("a") User a, @Param("b") User b);
+
+    @Query("SELECT COUNT(DISTINCT c.receiver.id) FROM Confession c WHERE c.sender = :sender AND c.createdAt >= :since AND c.receiver IS NOT NULL")
+    long countDistinctReceiversSince(@Param("sender") User sender, @Param("since") Instant since);
+
+    @Query("SELECT COUNT(DISTINCT c.receiverRollNumber) FROM Confession c WHERE c.sender = :sender AND c.createdAt >= :since AND c.receiverRollNumber IS NOT NULL")
+    long countDistinctInvitedRollsSince(@Param("sender") User sender, @Param("since") Instant since);
+
+    long countBySenderAndStateIn(User sender, List<ConfessionState> states);
 }

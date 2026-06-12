@@ -6,18 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import { apiError } from '../services/api';
 
 const AppShell = ({ children, onConfess, confessBreath }) => {
-    const { logout, user, rerollAlias } = useAuth();
+    const { logout, user } = useAuth();
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const [logoutSheetOpen, setLogoutSheetOpen] = useState(false);
-    const [rerolling, setRerolling] = useState(false);
-
-    const handleReroll = async () => {
-        if (rerolling) return;
-        setRerolling(true);
-        try { await rerollAlias(); } catch { /* silent — alias stays */ }
-        finally { setRerolling(false); }
-    };
 
     const active = pathname === '/dashboard' ? 'inbox'
                  : pathname === '/feed'      ? 'feed'
@@ -30,19 +22,8 @@ const AppShell = ({ children, onConfess, confessBreath }) => {
             <nav className="app-sidebar" aria-label="Main navigation">
                 <div className="app-sidebar-brand">
                     <Logo size={26} settled />
-                    {user?.displayAlias && (
-                        <div className="app-alias-row">
-                            <span className="app-sidebar-alias">{user.displayAlias}</span>
-                            <button
-                                className="app-reroll-btn"
-                                onClick={handleReroll}
-                                disabled={rerolling}
-                                aria-label="Get a new alias"
-                                title="Reroll alias"
-                            >
-                                ↻
-                            </button>
-                        </div>
+                    {user?.rollNumber && (
+                        <span className="app-sidebar-roll data">{user.rollNumber}</span>
                     )}
                 </div>
 
@@ -94,19 +75,8 @@ const AppShell = ({ children, onConfess, confessBreath }) => {
             <header className="app-header">
                 <div className="dash-header-left">
                     <Logo size={26} settled />
-                    {user?.displayAlias && (
-                        <div className="app-alias-row">
-                            <div className="dash-header-alias">{user.displayAlias}</div>
-                            <button
-                                className="app-reroll-btn"
-                                onClick={handleReroll}
-                                disabled={rerolling}
-                                aria-label="Get a new alias"
-                                title="Reroll alias"
-                            >
-                                ↻
-                            </button>
-                        </div>
+                    {user?.rollNumber && (
+                        <div className="dash-header-roll data">{user.rollNumber}</div>
                     )}
                 </div>
                 <div className="dash-header-right">

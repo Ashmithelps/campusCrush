@@ -50,14 +50,8 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    const rerollAlias = async () => {
-        const res = await api.post('/me/reroll-alias');
-        setUser(prev => ({ ...prev, displayAlias: res.data.alias }));
-        return res.data.alias;
-    };
-
     return (
-        <AuthContext.Provider value={{ user, token, login, register, verifyOtp, logout, rerollAlias, loading }}>
+        <AuthContext.Provider value={{ user, token, login, register, verifyOtp, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -1,18 +1,12 @@
 package com.example.campuscrush.alias;
 
 import java.util.Random;
+import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
 
-import com.example.campuscrush.repository.UserRepository;
-
-import lombok.RequiredArgsConstructor;
-
 @Component
-@RequiredArgsConstructor
 public class AliasGenerator {
-
-    private final UserRepository userRepository;
 
     private static final String[] ADJECTIVES = {
         "Velvet", "Amber", "Hollow", "Silver", "Pale", "Dusk", "Soft", "Quiet",
@@ -42,23 +36,28 @@ public class AliasGenerator {
 
     private final Random random = new Random();
 
-    public String generate() {
+    /**
+     * Generates a mask unique within the scope defined by {@code isTaken}
+     * (e.g. one viewer's inbox). Masks are deliberately reusable across
+     * scopes — global reuse strips the name of any stable identity.
+     */
+    public String generate(Predicate<String> isTaken) {
         String base = ADJECTIVES[random.nextInt(ADJECTIVES.length)] + " " +
                       NOUNS[random.nextInt(NOUNS.length)];
 
-        if (!userRepository.existsByDisplayAlias(base)) {
+        if (!isTaken.test(base)) {
             return base;
         }
 
-        // Collision — append a number until unique
+        // Collision within scope — append a number until unique
         for (int i = 2; i <= 999; i++) {
             String candidate = base + " " + i;
-            if (!userRepository.existsByDisplayAlias(candidate)) {
+            if (!isTaken.test(candidate)) {
                 return candidate;
             }
         }
 
-        // Fallback (effectively impossible at 1000 users)
+        // Fallback (effectively impossible within one inbox)
         return base + " " + System.currentTimeMillis();
     }
 }

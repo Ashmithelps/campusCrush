@@ -43,10 +43,6 @@ public class User {
     @Column(unique = true)
     private String rollNumber;
 
-    // Anonymous name like "Blue Panda"
-    @Column(nullable = false)
-    private String displayAlias;
-
     @Builder.Default
     private boolean shadowBanned = false; // Changed back to match DB column likely
 

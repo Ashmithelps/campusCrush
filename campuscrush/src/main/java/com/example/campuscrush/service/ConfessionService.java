@@ -23,17 +23,36 @@ public class ConfessionService {
     private final com.example.campuscrush.repository.MessageRepository messageRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService;
+    private final com.example.campuscrush.alias.AliasGenerator aliasGenerator;
 
     public static final int CONFESSIONS_PER_HOUR_LIMIT = 5;
+    public static final int DAILY_DISTINCT_RECIPIENTS_LIMIT = 3;
+    public static final int PENDING_CONFESSIONS_LIMIT = 5;
 
-    private void enforceConfessionRateLimit(User sender) {
+    // All caps key on the real sender account — masks are display-only
+    private void enforceConfessionCaps(User sender) {
         long recentCount = confessionRepository.countBySenderSince(
             sender, Instant.now().minusSeconds(3600)
         );
         if (recentCount >= CONFESSIONS_PER_HOUR_LIMIT) {
-            throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS, "You can only send 5 confessions per hour"
-            );
+            throw new com.example.campuscrush.error.LimitExceededException(
+                com.example.campuscrush.error.LimitExceededException.HOURLY_CAP);
+        }
+
+        Instant dayAgo = Instant.now().minusSeconds(24 * 3600L);
+        long distinctRecipients =
+            confessionRepository.countDistinctReceiversSince(sender, dayAgo)
+            + confessionRepository.countDistinctInvitedRollsSince(sender, dayAgo);
+        if (distinctRecipients >= DAILY_DISTINCT_RECIPIENTS_LIMIT) {
+            throw new com.example.campuscrush.error.LimitExceededException(
+                com.example.campuscrush.error.LimitExceededException.DAILY_CAP);
+        }
+
+        long pending = confessionRepository.countBySenderAndStateIn(
+            sender, List.of(ConfessionState.CREATED, ConfessionState.INVITED));
+        if (pending >= PENDING_CONFESSIONS_LIMIT) {
+            throw new com.example.campuscrush.error.LimitExceededException(
+                com.example.campuscrush.error.LimitExceededException.PENDING_CAP);
         }
     }
 
@@ -61,7 +80,7 @@ public class ConfessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "You've already sent an invite to this person. We'll notify you when they join.");
         }
-        enforceConfessionRateLimit(sender);
+        enforceConfessionCaps(sender);
 
         Confession confession = Confession.builder()
                 .sender(sender)
@@ -69,6 +88,8 @@ public class ConfessionService {
                 .icebreakerMessage(message)
                 .state(ConfessionState.INVITED)
                 .receiverHasUnread(false)
+                .senderAlias(aliasGenerator.generate(mask ->
+                    confessionRepository.existsByReceiverRollNumberAndSenderAlias(receiverRollNumber, mask)))
                 .build();
 
         return confessionRepository.save(confession);
@@ -76,6 +97,13 @@ public class ConfessionService {
 
     @Transactional
     public java.util.Map<String, String> processConfession(User sender, User receiver, String message) {
+        // Blocked pair (either direction) → silent drop, shadowban-style.
+        // A blocked user must not reach the other party under a fresh mask,
+        // and must not learn they were blocked.
+        if (confessionRepository.existsBlockedBetween(sender, receiver)) {
+            return java.util.Map.of("status", "CREATED");
+        }
+
         // Check for mutual crush first
         java.util.Optional<Confession> reverse =
             confessionRepository.findFirstBySenderAndReceiverAndStateIn(
@@ -194,7 +222,18 @@ public class ConfessionService {
         List<Confession> pending = confessionRepository.findByReceiverRollNumberAndState(
                 user.getRollNumber(), ConfessionState.INVITED);
 
+        // Masks were unique among this roll's invites; re-check against the
+        // user's actual inbox now that they have one
+        java.util.Set<String> assigned = new java.util.HashSet<>();
         for (Confession c : pending) {
+            if (c.getSenderAlias() == null
+                    || assigned.contains(c.getSenderAlias())
+                    || confessionRepository.existsByReceiverAndSenderAlias(user, c.getSenderAlias())) {
+                c.setSenderAlias(aliasGenerator.generate(mask ->
+                    assigned.contains(mask)
+                    || confessionRepository.existsByReceiverAndSenderAlias(user, mask)));
+            }
+            assigned.add(c.getSenderAlias());
             c.setReceiver(user);
             c.setReceiverRollNumber(null);
             c.setState(ConfessionState.CREATED);
@@ -233,6 +272,11 @@ public class ConfessionService {
             );
 
         if (existing.isPresent()) {
+            // Blocked thread → silent drop; the sender must not deliver
+            // anything nor learn the thread is blocked.
+            if (existing.get().getState() == ConfessionState.BLOCKED) {
+                return;
+            }
             // Duplicate confession lands as a chat message — limit it like one,
             // since it never increments the hourly confession count.
             enforceMessageRateLimit(sender);
@@ -260,7 +304,7 @@ public class ConfessionService {
             return;
         }
 
-        enforceConfessionRateLimit(sender);
+        enforceConfessionCaps(sender);
 
         Confession confession = Confession.builder()
                 .sender(sender)
@@ -268,6 +312,8 @@ public class ConfessionService {
                 .icebreakerMessage(message)
                 .state(ConfessionState.CREATED)
                 .receiverHasUnread(true) // New confession is unread by default
+                .senderAlias(aliasGenerator.generate(mask ->
+                    confessionRepository.existsByReceiverAndSenderAlias(receiver, mask)))
                 .build();
 
         confessionRepository.save(confession);
@@ -363,10 +409,10 @@ public void markAsRead(Long confessionId, User user) {
                         if (isSender) {
                             aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
                         } else if (Boolean.TRUE.equals(c.getIsRevealed())) {
-                            // Receiver sees sender's roll number once identity is revealed
+                            // Reveal resolves the mask in this thread only
                             aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
                         } else {
-                            aliasToShow = otherUser.getDisplayAlias();
+                            aliasToShow = c.getSenderAlias() != null ? c.getSenderAlias() : "Someone";
                         }
                     }
 
@@ -434,7 +480,7 @@ public void markAsRead(Long confessionId, User user) {
             } else if (Boolean.TRUE.equals(c.getIsRevealed())) {
                 aliasToShow = otherUser.getRollNumber() != null ? otherUser.getRollNumber() : otherUser.getPublicId().toString();
             } else {
-                aliasToShow = otherUser.getDisplayAlias();
+                aliasToShow = c.getSenderAlias() != null ? c.getSenderAlias() : "Someone";
             }
         }
 

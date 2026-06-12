@@ -43,6 +43,12 @@ public class Confession {
     // Populated only when state = INVITED (receiver not yet registered)
     private String receiverRollNumber;
 
+    // Per-conversation mask — the name the receiver sees for the sender in
+    // this thread only. Unique within the receiver's inbox, reusable campus-wide.
+    // Nullable at DB level for the one-time backfill; always set in code.
+    @Column(length = 60)
+    private String senderAlias;
+
     @Enumerated(EnumType.STRING)
     private ConfessionState state;
 

@@ -224,7 +224,15 @@ const Dashboard = () => {
             }
         } catch (err) {
             if (err?.response?.status === 429) {
-                setSendError("Slow down — you've hit the sending limit. Try again in a bit.");
+                // In-voice copy per cap; the backend sends only a machine code
+                const code = err?.response?.data?.code;
+                if (code === 'DAILY_CAP') {
+                    setSendError("That's everything for today. Three hearts a day — make each one count.");
+                } else if (code === 'PENDING_CAP') {
+                    setSendError('Five confessions are still waiting on an answer. Let them breathe first.');
+                } else {
+                    setSendError("Slow down — you've hit the sending limit. Try again in a bit.");
+                }
             } else {
                 setSendError(apiError(err, 'Failed to send confession.'));
             }

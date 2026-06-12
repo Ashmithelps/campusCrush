@@ -4,6 +4,5 @@ import java.util.UUID;
 
 public record MeResponse(
     UUID publicId,
-    String displayAlias,
     String rollNumber
 ) {}

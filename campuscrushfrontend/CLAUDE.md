@@ -56,8 +56,7 @@ Wraps authenticated screens (Dashboard, Feed). **Chat is NOT wrapped** — it ha
 - Mobile: fixed header (Logo + alias + ThemeToggle + logout) + fixed bottom tab bar.
 - FAB hidden on desktop via `display: none !important`. Sidebar Confess button calls `onConfess` prop instead.
 - Logout confirmation sheet lives inside AppShell (moved from Dashboard).
-- Alias display uses `font-family: var(--font-serif)` italic in both sidebar and mobile header.
-- Reroll button (↻) next to alias — calls `rerollAlias()` from AuthContext, throttled to one in-flight request.
+- Self-identity shows the user's roll number in `.data` sans tabular (`.app-sidebar-roll` / `.dash-header-roll`) — no alias, no reroll.
 - Props: `onConfess` (opens confess sheet), `confessBreath` (breathe animation on sidebar button).
 - CSS structure: `.app-shell` → `.app-sidebar` (desktop) + `.app-header` (mobile) + `.app-content` + `.app-tab-bar` (mobile).
 - On desktop: `.app-content` is `overflow-y: auto`, page containers use `height: auto`. On mobile: `.app-content` is `overflow: hidden`, inner lists scroll.
@@ -94,39 +93,36 @@ Only `@cuchd.in` emails accepted. Validation regex: `/^[a-zA-Z0-9]{4,20}@cuchd\.
 OTP rate limits (backend): 60s resend cooldown, 5-attempt brute-force lockout (15 min).
 OTP fields (`otp_code`, `otp_expiry`, `otp_attempts`, `otp_locked_until`) are columns on the `users` table — there is NO separate `otps` table.
 
-**`AuthContext` methods**: `login`, `register`, `verifyOtp`, `logout`, `rerollAlias`.
-`rerollAlias()` calls `POST /api/me/reroll-alias` and updates `user.displayAlias` in place.
+**`AuthContext` methods**: `login`, `register`, `verifyOtp`, `logout`.
+`user` from `/api/me` is `{ publicId, rollNumber }` — no alias field.
 
 ---
 
-## Pseudonym system
+## Mask system (per-conversation pseudonyms)
 
-Aliases are two literary English words — one evocative adjective + one abstract/natural noun (e.g. "Velvet Tide", "Hollow Shore").
+Masks are two literary English words — one evocative adjective + one abstract/natural noun (e.g. "Velvet Tide", "Hollow Shore"). **There is no per-user alias anymore** — a mask is assigned **per conversation** (`confessions.sender_alias`): the name the receiver sees for the sender in that thread only. Stable within the thread, unrelated across the sender's other threads — so inbox-comparison between friends can't correlate a sender.
 
 **Generator**: `../campuscrush/.../alias/AliasGenerator.java`
-- 72 adjectives × 72 nouns = **5,184 base combinations**
-- Application-level collision detection via `userRepository.existsByDisplayAlias()`
+- 72 adjectives × 72 nouns, vocabulary unchanged from the old system
+- `generate(Predicate<String> isTaken)` — uniqueness scope is injectable
+- **Inbox-scoped uniqueness**: collisions checked only against the viewer's own conversations (`existsByReceiverAndSenderAlias`); campus-wide reuse is deliberate (strips global identity)
 - Numeric suffix (` 2`…` 999`) on collision; timestamp fallback (effectively unreachable)
-- No DB unique constraint on `display_alias` — app-level is sufficient
 
-**Migration**: `AliasMigrationRunner.java` (`@PostConstruct`)
-- On every startup, regex-matches old "Color Animal" aliases (Blue/Red/…Panda/Fox/…)
-- Reassigns matching users to new curated aliases
-- Self-healing: exits immediately once no old-scheme aliases remain
+**Backfill**: `MaskBackfillRunner.java` (`@PostConstruct`, self-healing) — assigns masks to any confession with `sender_alias IS NULL`, inbox-unique per viewer. Migration SQL: `mask_migration.sql`.
 
-**Reroll endpoint**: `POST /api/me/reroll-alias` (auth required) → `{ "alias": "…" }`
-- Regenerates alias for the authenticated user
-- Frontend calls via `rerollAlias()` in AuthContext; ↻ button in AppShell header/sidebar
+**INVITED confessions**: mask generated at creation (scoped to other invites for that roll number) and re-checked against the receiver's real inbox in `resolveInvitedConfessions` when they register.
 
-**Display**: alias renders in `var(--font-serif)` italic everywhere:
-- `.app-sidebar-alias` (desktop sidebar)
-- `.dash-header-alias` (mobile header)
-- Confession cards and chat header use the alias value from API responses
+**Enforcement is on the real account — masks are display-only.** Block, report, shadowban, rate limits, and the confession caps all key on real user IDs; the server resolves mask → account internally and never exposes it. A blocked user cannot reach the blocker under a fresh mask (new threads and duplicate-appends between a blocked pair are **silently dropped**, shadowban-style — no 403, no tip-off).
 
-**Alias in data flow**:
+**Reveal isolation**: `isRevealed` is per-confession, so a reveal resolves the mask to the sender's roll **in that thread only** — other threads keep their masks.
+
+**Self identity**: users have no name of their own anymore. AppShell shows the user's **roll number** in sans tabular (`.app-sidebar-roll data` / `.dash-header-roll data`). No reroll button (endpoint deleted).
+
+**Mask in data flow**:
 - Sender always sees receiver's roll number
-- Receiver sees sender's `displayAlias` until reveal
+- Receiver sees the thread's `sender_alias` (as `otherUserAlias`) until reveal
 - After reveal (`isRevealed = true`), backend returns sender's roll as `otherUserAlias`
+- Masks render in `var(--font-serif)` italic (they're names); roll numbers render in `.data` sans tabular (they're UIDs)
 
 ---
 
@@ -201,8 +197,7 @@ POST   /api/feed                              { content } → post anonymously
 POST   /api/feed/:id/view                     record view (fire-and-forget, 204)
 POST   /api/feed/:id/report                   { reason } → report (204)
 
-GET    /api/me                                { publicId, displayAlias, rollNumber }
-POST   /api/me/reroll-alias                   regenerate alias → { alias }
+GET    /api/me                                { publicId, rollNumber }
 ```
 
 **Reveal is two-path**:
@@ -317,9 +312,11 @@ Key feed classes: `.feed-page`, `.feed-deck-area`, `.feed-deck`, `.feed-card`, `
 Tables in Supabase PostgreSQL:
 
 **Core** (created by Hibernate on first run with `DDL_AUTO=create`):
-- `users` (id, public_id UUID unique, roll_number unique, email, display_alias, otp_code, otp_expiry, otp_attempts, otp_locked_until, created_at) — OTP fields are columns here, no separate table
-- `confessions` (id, sender_id→users, receiver_id→users, icebreaker_message, state, is_revealed, show_mutual_animation, created_at)
+- `users` (id, public_id UUID unique, roll_number unique, email, otp_code, otp_expiry, otp_attempts, otp_locked_until, created_at) — OTP fields are columns here, no separate table. `display_alias` dropped by `mask_migration.sql` step 2.
+- `confessions` (id, sender_id→users, receiver_id→users, sender_alias VARCHAR(60) — per-conversation mask, icebreaker_message, state, is_revealed, show_mutual_animation, created_at)
 - `messages` (id, confession_id→confessions, sender_id→users, content, type, sent_at)
+
+**`mask_migration.sql`** — run step 1 (add `confessions.sender_alias`, drop NOT NULL on `users.display_alias`) BEFORE deploying; step 2 (drop `users.display_alias`) any time after.
 
 **`feed_migration.sql`** — run manually:
 - `public_confessions` (id, author_id→users, content, campus_tag, status, view_count, report_count, created_at)
@@ -373,12 +370,16 @@ RESTART IDENTITY CASCADE;
 
 ---
 
-## Rate limits
+## Rate limits & confession caps
 
-- **Confessions**: 5/hour per sender (`ConfessionService.CONFESSIONS_PER_HOUR_LIMIT`) — applies to new confessions AND invited confessions (unregistered roll numbers).
-- **Chat messages**: 20/minute per sender (`MessageService.MESSAGES_PER_MINUTE_LIMIT`) — applies to WebSocket sends and the duplicate-confession append-as-message path.
-- Mutual-crush path is NOT rate limited (once per pair, reveal must never be blocked).
-- Backend strips error messages (`include-message=never`), so the frontend shows its own copy on 429 (confess sheet in Dashboard.jsx; guess lockout in Chat.jsx).
+All enforced on the **real sender account** in `ConfessionService.enforceConfessionCaps` (constants on the services):
+
+- **Hourly**: 5 confessions/hour (`CONFESSIONS_PER_HOUR_LIMIT`) — new + invited.
+- **Daily distinct recipients**: 3 new people per rolling 24h (`DAILY_DISTINCT_RECIPIENTS_LIMIT`) — counts registered receivers + invited rolls; duplicate confessions to the same person don't count (they're messages).
+- **Outstanding pending**: max 5 unanswered confessions in CREATED/INVITED state (`PENDING_CONFESSIONS_LIMIT`).
+- **Chat messages**: 20/minute per sender (`MessageService.MESSAGES_PER_MINUTE_LIMIT`) — WebSocket sends and the duplicate-confession append path.
+- Mutual-crush path is NOT capped (once per pair, reveal must never be blocked).
+- Cap violations throw `LimitExceededException` → `LimitExceededHandler` returns **429 `{ "code": "HOURLY_CAP" | "DAILY_CAP" | "PENDING_CAP" }`** (machine code only — `include-message=never` strips everything else). The confess sheet in Dashboard.jsx maps codes to in-voice copy; Chat.jsx handles guess-lockout 429s.
 - Chat 429s over WebSocket are silently dropped client-side (same as other socket errors).
 
 ---

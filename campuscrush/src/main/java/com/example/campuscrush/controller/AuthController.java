@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.example.campuscrush.alias.AliasGenerator;
 import com.example.campuscrush.entity.user.User;
 import com.example.campuscrush.repository.UserRepository;
 import com.example.campuscrush.service.AuthService;
@@ -21,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final AliasGenerator aliasGenerator;
     private final AuthService authService;
     private final ConfessionService confessionService;
 
@@ -47,7 +45,6 @@ public class AuthController {
                 user = User.builder()
                         .collegeEmail(normalizedEmail)
                         .rollNumber(rollNumber)
-                        .displayAlias(aliasGenerator.generate())
                         .build();
                 userRepository.save(user);
                 confessionService.resolveInvitedConfessions(user);
