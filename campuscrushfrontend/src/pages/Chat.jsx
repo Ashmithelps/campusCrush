@@ -263,7 +263,7 @@ const LiveGuessFeed = ({ revealState }) => {
 };
 
 // Sender: kit setup sheet
-const RevealKitSheet = ({ revealState, onClose, onSaved }) => {
+const RevealKitSheet = ({ revealState, confessionId, onClose, onSaved }) => {
     const [form, setForm]     = useState({
         hint1: revealState?.hint1 ?? '',
         hint2: revealState?.hint2 ?? '',
@@ -279,7 +279,7 @@ const RevealKitSheet = ({ revealState, onClose, onSaved }) => {
         setSaving(true);
         setErr('');
         try {
-            await api.put('/reveal/kit', form);
+            await api.put(`/reveal/kit/${confessionId}`, form);
             onSaved();
         } catch (e) {
             setErr(e?.response?.data?.message || 'Could not save. Try again.');
@@ -877,6 +877,7 @@ const Chat = () => {
             {kitOpen && (
                 <RevealKitSheet
                     revealState={revealState}
+                    confessionId={confessionId}
                     onClose={() => setKitOpen(false)}
                     onSaved={() => { setKitOpen(false); fetchRevealState(); }}
                 />

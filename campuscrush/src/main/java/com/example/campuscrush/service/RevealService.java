@@ -52,22 +52,22 @@ public class RevealService {
     private final MessageRepository     messageRepo;
     private final SimpMessagingTemplate messaging;
 
-    // ── Kit management ────────────────────────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public RevealStateResponse getKit(User user) {
-        RevealKit kit = kitRepo.findByUser(user).orElse(null);
-        return senderView(null, kit, List.of());
-    }
+    // ── Kit management (per-conversation, sender only) ───────────────────────
 
     @Transactional
-    public RevealStateResponse updateKit(User user, RevealKitRequest req) {
+    public RevealStateResponse updateKit(User user, Long confessionId, RevealKitRequest req) {
+        Confession confession = confessionRepo.findById(confessionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!confession.getSender().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the sender can set hints");
+        }
+
         validateHint(req.hint1());
         validateHint(req.hint2());
         validateHint(req.hint3());
 
-        RevealKit kit = kitRepo.findByUser(user)
-            .orElseGet(() -> RevealKit.builder().user(user).build());
+        RevealKit kit = kitRepo.findByConfession(confession)
+            .orElseGet(() -> RevealKit.builder().confession(confession).build());
 
         kit.setHint1(trimOrNull(req.hint1()));
         kit.setHint2(trimOrNull(req.hint2()));
@@ -98,7 +98,7 @@ public class RevealService {
         String status = state != null ? state.getStatus().name() : RevealStatus.HIDDEN.name();
 
         if (isSender) {
-            RevealKit kit = kitRepo.findByUser(caller).orElse(null);
+            RevealKit kit = kitRepo.findByConfession(confession).orElse(null);
             List<RevealStateResponse.GuessEntry> guesses = state != null
                 ? guessRepo.findByConfessionOrderByGuessedAtDesc(confession).stream()
                     .map(g -> new RevealStateResponse.GuessEntry(
@@ -109,7 +109,7 @@ public class RevealService {
         }
 
         // Receiver — strict no-leak
-        RevealKit kit    = kitRepo.findByUser(confession.getSender()).orElse(null);
+        RevealKit kit    = kitRepo.findByConfession(confession).orElse(null);
         boolean enabled  = kit != null && kit.isGuessingEnabled();
         boolean complete = isKitComplete(kit);
 
@@ -159,7 +159,7 @@ public class RevealService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not active");
         }
 
-        RevealKit kit = kitRepo.findByUser(confession.getSender())
+        RevealKit kit = kitRepo.findByConfession(confession)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Guessing not available"));
         if (!kit.isGuessingEnabled()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Guessing not enabled");

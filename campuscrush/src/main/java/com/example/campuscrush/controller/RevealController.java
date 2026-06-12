@@ -1,7 +1,7 @@
 package com.example.campuscrush.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,16 +22,12 @@ public class RevealController {
 
     private final RevealService revealService;
 
-    @GetMapping("/kit")
-    public RevealStateResponse getKit() {
+    @PutMapping("/kit/{confessionId}")
+    public ResponseEntity<RevealStateResponse> updateKit(
+            @PathVariable Long confessionId,
+            @RequestBody RevealKitRequest req) {
         User user = SecurityUtils.currentUser();
-        return revealService.getKit(user);
-    }
-
-    @PutMapping("/kit")
-    public ResponseEntity<RevealStateResponse> updateKit(@RequestBody RevealKitRequest req) {
-        User user = SecurityUtils.currentUser();
-        RevealStateResponse resp = revealService.updateKit(user, req);
+        RevealStateResponse resp = revealService.updateKit(user, confessionId, req);
         return ResponseEntity.ok(resp);
     }
 }

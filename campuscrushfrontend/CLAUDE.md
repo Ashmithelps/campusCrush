@@ -189,8 +189,7 @@ GET    /api/messages/:confessionId            message list
 
 GET    /api/confessions/:id/reveal-state      role-gated reveal/guess state
 POST   /api/confessions/:id/guess             { rollNumber } → { correct, guessesRemaining, hintsUnlocked, status }
-GET    /api/reveal/kit                        sender's current hint kit
-PUT    /api/reveal/kit                        { hint1, hint2, hint3, guessingEnabled }
+PUT    /api/reveal/kit/:confessionId          { hint1, hint2, hint3, guessingEnabled } — sender only, per-thread
 
 GET    /api/feed                              unseen-first feed (20 items, 24h expiry)
 POST   /api/feed                              { content } → post anonymously
@@ -251,13 +250,14 @@ Three inline sub-components rendered in `.reveal-panels` between `.chat-messages
 **`RevealKitSheet`** (sender, from ⋮ menu → "Set up guessing" / "Manage guessing hints"):
 - 3 hint inputs (max 200 chars each) + char counters
 - Toggle switch (`role="switch"`) for "Let them guess me"
-- `PUT /api/reveal/kit` on save
+- `PUT /api/reveal/kit/:confessionId` on save
 
 **Guessing rules (enforced backend)**:
+- **Kits are per-conversation** (`reveal_kits.confession_id` UNIQUE) — hints set in one thread don't exist in another, so identical hint text can't correlate a sender across inboxes. Each thread's kit is seeded empty.
 - 3 tries per round; wrong guess unlocks next hint (hint 1 → 2 → 3)
 - 3 wrong in a row → 24h lockout; resets automatically after
 - Kit must have all 3 hints filled AND `guessingEnabled = true` for receiver to see the panel
-- Guess validated ONLY against that one sender's roll number — never a global lookup
+- Guess validated ONLY against that one thread's sender roll — never a global lookup
 
 **`runAction` (block/reveal/unblock/reply)**:
 - Sets `actionLoading`, awaits the API call, then `fetchAll()`
@@ -325,7 +325,7 @@ Tables in Supabase PostgreSQL:
 - `user_blocks` (blocker_id, blocked_id — PK composite)
 
 **`reveal_migration.sql`** — run manually:
-- `reveal_kits` (id, user_id→users UNIQUE, hint1/2/3 VARCHAR(200) nullable, guessing_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at, updated_at)
+- `reveal_kits` (id, confession_id→confessions UNIQUE, hint1/2/3 VARCHAR(200) nullable, guessing_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at, updated_at) — was per-user (`user_id`); `hints_migration.sql` re-keys it per-conversation (step 1 before deploy copies each sender's kit into their existing threads; step 2 drops `user_id`)
 - `reveal_states` (id, confession_id→confessions UNIQUE, status VARCHAR(25) NOT NULL DEFAULT 'HIDDEN', guesses_remaining INT NOT NULL DEFAULT 3, hints_unlocked INT NOT NULL DEFAULT 1, locked_until TIMESTAMPTZ nullable, created_at)
 - `reveal_guesses` (id, confession_id→confessions, guessed_roll VARCHAR(50), correct BOOLEAN, guessed_at)
 

@@ -2,7 +2,7 @@ package com.example.campuscrush.entity.reveal;
 
 import java.time.Instant;
 
-import com.example.campuscrush.entity.user.User;
+import com.example.campuscrush.entity.confession.Confession;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,9 +32,12 @@ public class RevealKit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Per-conversation: hints belong to one thread so identical hint text
+    // can't be used to correlate a sender across inboxes.
+    // Nullable at DB level until hints_migration.sql step 2; always set in code.
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, unique = true)
-    private User user;
+    @JoinColumn(unique = true)
+    private Confession confession;
 
     @Column(length = 200)
     private String hint1;
